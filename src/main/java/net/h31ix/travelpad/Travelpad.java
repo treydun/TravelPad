@@ -58,12 +58,7 @@ public class Travelpad extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(new TravelPadBlockListener(this), this);
         pm.registerEvents(new TravelPadListener(this), this);
-        getCommand("travelpad").setExecutor(new TravelPadCommandExecutor(this));   
-        try {
-            new Metrics(this).start();
-        } catch (IOException ex) {
-            Logger.getLogger(Travelpad.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        getCommand("travelpad").setExecutor(new TravelPadCommandExecutor(this));
     }
     
     public boolean namePad(Player player, String name)
