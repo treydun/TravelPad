@@ -226,7 +226,7 @@ public class Travelpad extends JavaPlugin {
     {
         if (!player.hasPermission("travelpad.nopay"))
         {
-            economy.withdrawPlayer(player.getName(), config.createAmount);
+            economy.withdrawPlayer(player, config.createAmount);
             player.sendMessage(ChatColor.GOLD+l.charge_message()+" "+config.createAmount);
         }
     }
@@ -235,7 +235,7 @@ public class Travelpad extends JavaPlugin {
     {
         if (!player.hasPermission("travelpad.nopay"))
         {
-            economy.withdrawPlayer(player.getName(), config.teleportAmount);
+            economy.withdrawPlayer(player, config.teleportAmount);
             player.sendMessage(ChatColor.GOLD+l.charge_message()+" "+config.teleportAmount);
         }
     }    
@@ -244,7 +244,7 @@ public class Travelpad extends JavaPlugin {
     {
         if (!player.hasPermission("travelpad.nopay"))
         {        
-            economy.depositPlayer(player.getName(), config.deleteAmount);
+            economy.depositPlayer(player, config.deleteAmount);
             player.sendMessage(ChatColor.GOLD+l.refund_message()+" "+config.deleteAmount);
         }
     }   
@@ -253,7 +253,7 @@ public class Travelpad extends JavaPlugin {
     {
         if (!player.hasPermission("travelpad.nopay"))
         {        
-            economy.depositPlayer(player.getName(), config.createAmount);
+            economy.depositPlayer(player, config.createAmount);
             player.sendMessage(ChatColor.GOLD+l.refund_message()+" "+config.deleteAmount);
         }
     }       
@@ -268,7 +268,7 @@ public class Travelpad extends JavaPlugin {
         {
             return true;
         }        
-        double balance = economy.getBalance(player.getName());
+        double balance = economy.getBalance(player);
         if (balance >= config.teleportAmount)
         {           
             return true;
@@ -316,7 +316,7 @@ public class Travelpad extends JavaPlugin {
             }   
             if (config.economyEnabled)
             {
-                if (!(economy.getBalance(player.getName()) >= config.createAmount))
+                if (!(economy.getBalance(player) >= config.createAmount))
                 {
                     player.sendMessage(ChatColor.RED+"Not enough money!");
                     return false;
