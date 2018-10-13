@@ -36,9 +36,9 @@ public class TravelPadBlockListener implements Listener {
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK)
         {
             Block block = event.getClickedBlock();
-            if (block.getTypeId() == config.center)
+            if (block.getType() == config.center)
             {
-                if (block.getRelative(BlockFace.EAST).getTypeId() == config.outline && block.getRelative(BlockFace.WEST).getTypeId() == config.outline && block.getRelative(BlockFace.NORTH).getTypeId() == config.outline && block.getRelative(BlockFace.SOUTH).getTypeId() == config.outline)
+                if (block.getRelative(BlockFace.EAST).getType() == config.outline && block.getRelative(BlockFace.WEST).getType() == config.outline && block.getRelative(BlockFace.NORTH).getType() == config.outline && block.getRelative(BlockFace.SOUTH).getType() == config.outline)
                 {
                     Player player = event.getPlayer();
                     if (plugin.canCreate(player))
@@ -63,9 +63,9 @@ public class TravelPadBlockListener implements Listener {
         }      
         else
         {
-            if (block.getTypeId() == config.center)
+            if (block.getType() == config.center)
             {
-                if (block.getRelative(BlockFace.EAST).getTypeId() == config.outline && block.getRelative(BlockFace.WEST).getTypeId() == config.outline && block.getRelative(BlockFace.NORTH).getTypeId() == config.outline && block.getRelative(BlockFace.SOUTH).getTypeId() == config.outline)
+                if (block.getRelative(BlockFace.EAST).getType() == config.outline && block.getRelative(BlockFace.WEST).getType() == config.outline && block.getRelative(BlockFace.NORTH).getType() == config.outline && block.getRelative(BlockFace.SOUTH).getType() == config.outline)
                 {
                     Player player = event.getPlayer();
                     if (plugin.canCreate(player))
@@ -81,7 +81,7 @@ public class TravelPadBlockListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event)
     {
         Block block = event.getBlock();
-        if (block.getTypeId() == config.center)
+        if (block.getType() == config.center)
         {
             Pad pad = manager.getPadAt(block.getLocation());
             UnnamedPad upad = plugin.getUnnamedPadAt(block.getLocation());

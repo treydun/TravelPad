@@ -76,10 +76,10 @@ public class TravelPadManager {
                 }
             },      600L);
             final Block block = location.getBlock();
-            block.getRelative(BlockFace.EAST).setType(Material.STEP);
-            block.getRelative(BlockFace.WEST).setType(Material.STEP);
-            block.getRelative(BlockFace.NORTH).setType(Material.STEP);
-            block.getRelative(BlockFace.SOUTH).setType(Material.STEP);
+            block.getRelative(BlockFace.EAST).setType(Material.STONE_SLAB);
+            block.getRelative(BlockFace.WEST).setType(Material.STONE_SLAB);
+            block.getRelative(BlockFace.NORTH).setType(Material.STONE_SLAB);
+            block.getRelative(BlockFace.SOUTH).setType(Material.STONE_SLAB);
             if (config.emitWater)
             {
                 block.getRelative(BlockFace.UP).setType(Material.WATER);

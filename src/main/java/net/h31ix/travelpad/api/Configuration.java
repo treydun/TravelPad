@@ -8,6 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -22,7 +23,7 @@ public class Configuration {
     
     public boolean requireItem = false;
     public boolean takeItem = false;
-    public int itemID = 0;
+    public Material itemType = null;
     
     public boolean chargeCreate = false;
     public double createAmount = 0;
@@ -38,8 +39,8 @@ public class Configuration {
     
     public boolean emitWater = false;
     
-    public int center = 0;
-    public int outline = 0;
+    public Material center = null;
+    public Material outline = null;
     
     private List<Pad> padList;
     private List<UnnamedPad> unvList;
@@ -85,15 +86,15 @@ public class Configuration {
                 Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
             }
         }       
-        center = config.getInt("Portal Options.Center block id");
-        outline = config.getInt("Portal Options.Outline block id");
+        center = Material.valueOf(config.getString("Portal Options.Center block name"));
+        outline = Material.valueOf(config.getString("Portal Options.Outline block name"));
         anyBreak = config.getBoolean("Portal Options.Allow any player to break");
         emitWater = config.getBoolean("Portal Options.Emit water on creation");
         requireItem = config.getBoolean("Teleportation Options.Require item");
         if (requireItem)
         {
             takeItem = config.getBoolean("Teleportation Options.Take item");
-            itemID = config.getInt("Teleportation Options.Item ID"); 
+            itemType = Material.valueOf(config.getString("Teleportation Options.Item ID"));
         }
         chargeCreate = config.getBoolean("Portal Options.Charge on creation");
         refundDelete = config.getBoolean("Portal Options.Refund on deletion");

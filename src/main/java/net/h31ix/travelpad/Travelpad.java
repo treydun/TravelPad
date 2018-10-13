@@ -168,7 +168,7 @@ public class Travelpad extends JavaPlugin {
         ItemStack s = null;
         if (config.requireItem)
         {
-            s = new ItemStack(Material.getMaterial(config.itemID), 1);
+            s = new ItemStack(config.itemType, 1);
             for (int i=0;i<player.getInventory().getContents().length;i++)
             {
                 if (player.getInventory().getContents()[i] != null)
