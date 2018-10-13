@@ -1,7 +1,7 @@
 Teleportation Options:
   Require item: false
   Take item: false
-  Item Name: REDSTONE
+  Item name: REDSTONE
   Charge player: false
   Charge amount: 10.0
   Optional item: ENDER_EYE

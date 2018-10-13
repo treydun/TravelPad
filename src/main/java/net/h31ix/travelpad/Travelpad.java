@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import net.h31ix.travelpad.api.Configuration;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.api.TravelPadManager;
@@ -25,34 +26,30 @@ public class Travelpad extends JavaPlugin {
     public TravelPadManager manager;
     public LangManager l;
     private Economy economy;
-    
+
     @Override
     public void onDisable() {
     }
 
     @Override
     public void onEnable() {
-        if(!new File("plugins/TravelPad/config.yml").exists())
-        {
+        if (!new File("plugins/TravelPad/config.yml").exists()) {
             saveDefaultConfig();
         }
-        if (!new File("plugins/TravelPad/pads.yml").exists())
-        {
+        if (!new File("plugins/TravelPad/pads.yml").exists()) {
             try {
                 new File("plugins/TravelPad/pads.yml").createNewFile();
             } catch (IOException ex) {
                 Logger.getLogger(Travelpad.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        if (!new File("plugins/TravelPad/lang.yml").exists())
-        {
-            saveResource("lang.yml",false);
-        }       
+        if (!new File("plugins/TravelPad/lang.yml").exists()) {
+            saveResource("lang.yml", false);
+        }
         manager = new TravelPadManager(this);
         config = manager.config;
         l = new LangManager();
-        if (config.economyEnabled)
-        {
+        if (config.economyEnabled) {
             setupEconomy();
         }
         PluginManager pm = getServer().getPluginManager();
@@ -61,289 +58,224 @@ public class Travelpad extends JavaPlugin {
         pm.registerEvents(new TravelPadSignListener(this), this);
         getCommand("travelpad").setExecutor(new TravelPadCommandExecutor(this));
     }
-    
-    public boolean namePad(Player player, String name)
-    {
+
+    public boolean namePad(Player player, String name) {
         Object[] pads = manager.getUnnamedPadsFrom(player).toArray();
-        if (pads.length == 0)
-        {
+        if (pads.length == 0) {
             return false;
-        }
-        else
-        {
-            UnnamedPad pad = ((UnnamedPad)pads[0]);
-            manager.switchPad(pad,name);
+        } else {
+            UnnamedPad pad = ((UnnamedPad) pads[0]);
+            manager.switchPad(pad, name);
             return true;
         }
     }
-    
-    public Pad getPadAt(Location location)
-    {
+
+    public Pad getPadAt(Location location) {
         List<Pad> list = manager.getPads();
-        for (Pad pad : list)
-        {
-            int padX = (int)pad.getLocation().getX();
-            int padY = (int)pad.getLocation().getY();
-            int padZ = (int)pad.getLocation().getZ();
+        for (Pad pad : list) {
+            int padX = (int) pad.getLocation().getX();
+            int padY = (int) pad.getLocation().getY();
+            int padZ = (int) pad.getLocation().getZ();
             String padWorld = pad.getLocation().getWorld().getName();
-            int locX = (int)location.getX();
-            int locY = (int)location.getY();
-            int locZ = (int)location.getZ();
+            int locX = (int) location.getX();
+            int locY = (int) location.getY();
+            int locZ = (int) location.getZ();
             String locWorld = location.getWorld().getName();
-            if (padX <= locX+2 && padX >= locX-2 && padY <= locY+2 && padY >= locY-2 && padZ <= locZ+2 && padZ >= locZ-2 && padWorld.equals(locWorld))
-            {
+            if (padX <= locX + 2 && padX >= locX - 2 && padY <= locY + 2 && padY >= locY - 2 && padZ <= locZ + 2 && padZ >= locZ - 2 && padWorld.equals(locWorld)) {
                 return pad;
-            }   
+            }
         }
         return null;
     }
-    
-    public UnnamedPad getUnnamedPadAt(Location location)
-    {
+
+    public UnnamedPad getUnnamedPadAt(Location location) {
         List<UnnamedPad> list = manager.getUnnamedPads();
-        for (UnnamedPad pad : list)
-        {
-            int x = (int)pad.getLocation().getX();
-            int y = (int)pad.getLocation().getY();
-            int z = (int)pad.getLocation().getZ();
-            int xx = (int)location.getX();
-            int yy = (int)location.getY();
-            int zz = (int)location.getZ();
-            if (x <= xx+2 && x >= xx-2 && y <= yy+2 && y >= yy-2 && z <= zz+2 && z >= zz-2)
-            {
+        for (UnnamedPad pad : list) {
+            int x = (int) pad.getLocation().getX();
+            int y = (int) pad.getLocation().getY();
+            int z = (int) pad.getLocation().getZ();
+            int xx = (int) location.getX();
+            int yy = (int) location.getY();
+            int zz = (int) location.getZ();
+            if (x <= xx + 2 && x >= xx - 2 && y <= yy + 2 && y >= yy - 2 && z <= zz + 2 && z >= zz - 2) {
                 return pad;
-            }   
+            }
         }
-        return null;        
+        return null;
     }
-    
-    public boolean hasPad(Player player)
-    {
+
+    public boolean hasPad(Player player) {
         List<Pad> pads = manager.getPadsFrom(player);
-        if (pads.size() > 0)    
-        {
+        if (pads.size() > 0) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
     }
-    
-    public double getRandom()
-    {       
-        int x = (int)(2*Math.random())+1;
-        double e = (4*Math.random())+1;
-        if (x == 2)
-        {
-            e = 0-e;
+
+    public double getRandom() {
+        int x = (int) (2 * Math.random()) + 1;
+        double e = (4 * Math.random()) + 1;
+        if (x == 2) {
+            e = 0 - e;
         }
         return e;
     }
-    
-    public void delete(Pad pad)
-    {
+
+    public void delete(Pad pad) {
         double returnValue = config.deleteAmount;
-        if (returnValue != 0)
-        {
+        if (returnValue != 0) {
             refund(getServer().getPlayer(pad.getOwner()));
-        }        
+        }
         manager.deletePad(pad);
     }
-    
-    public void create(Location location, Player player)
-    {
+
+    public void create(Location location, Player player) {
         double createValue = config.createAmount;
-        if (createValue != 0)
-        {
+        if (createValue != 0) {
             charge(player);
-        }         
-        manager.createPad(location, player); 
+        }
+        manager.createPad(location, player);
     }
-    
-    public void teleport(Player player, Location loc)
-    {
+
+    public void teleport(Player player, Location loc) {
         boolean tp = true;
         boolean take = false;
         boolean found = false;
         ItemStack s = null;
-        if (config.requireItem)
-        {
+        if (config.requireItem) {
             s = new ItemStack(config.itemType, 1);
-            for (int i=0;i<player.getInventory().getContents().length;i++)
-            {
-                if (player.getInventory().getContents()[i] != null)
-                {
-                    if(player.getInventory().getContents()[i].getType().name().equals(s.getType().name()))
-                    {
-                        if (config.takeItem)
-                        {
+            for (int i = 0; i < player.getInventory().getContents().length; i++) {
+                if (player.getInventory().getContents()[i] != null) {
+                    if (player.getInventory().getContents()[i].getType().name().equals(s.getType().name())) {
+                        if (config.takeItem) {
                             take = true;
-                        } 
+                        }
                         found = true;
                     }
                 }
             }
-            if (found == false)
-            {
-                player.sendMessage(ChatColor.RED+l.travel_deny_item()+" "+s.getType().name().toLowerCase().replaceAll("_", ""));
+            if (found == false) {
+                player.sendMessage(ChatColor.RED + l.travel_deny_item() + " " + s.getType().name().toLowerCase().replaceAll("_", ""));
                 tp = false;
             }
         }
-        if (config.chargeTeleport && tp)
-        {
-            if (canTeleport(player))
-            {
-                chargeTP(player);  
-            }
-            else
-            {
-                player.sendMessage(ChatColor.RED+l.travel_deny_money());
+        if (config.chargeTeleport && tp) {
+            if (canTeleport(player)) {
+                chargeTP(player);
+            } else {
+                player.sendMessage(ChatColor.RED + l.travel_deny_money());
                 tp = false;
             }
         }
-        if (take && tp)
-        {
+        if (take && tp) {
             player.getInventory().removeItem(s);
-            player.sendMessage(ChatColor.GOLD+s.getType().name().toLowerCase().replaceAll("_", "")+" "+l.travel_approve_item());
+            player.sendMessage(ChatColor.GOLD + s.getType().name().toLowerCase().replaceAll("_", "") + " " + l.travel_approve_item());
         }
-        if (tp)
-        {
-            for (int i=0;i!=32;i++)
-            {
+        if (tp) {
+            for (int i = 0; i != 32; i++) {
                 player.getWorld().playEffect(player.getLocation().add(getRandom(), getRandom(), getRandom()), Effect.SMOKE, 3);
             }
             loc.getChunk().load();
-            player.teleport(loc);      
-            player.sendMessage(ChatColor.GREEN+l.travel_message());            
-            for (int i=0;i!=32;i++)
-            {
+            player.teleport(loc);
+            player.sendMessage(ChatColor.GREEN + l.travel_message());
+            for (int i = 0; i != 32; i++) {
                 player.getWorld().playEffect(loc.add(getRandom(), getRandom(), getRandom()), Effect.SMOKE, 3);
             }
         }
     }
-    
-    public void charge(Player player)
-    {
-        if (!player.hasPermission("travelpad.nopay"))
-        {
+
+    public void charge(Player player) {
+        if (!player.hasPermission("travelpad.nopay")) {
             economy.withdrawPlayer(player, config.createAmount);
-            player.sendMessage(ChatColor.GOLD+l.charge_message()+" "+config.createAmount);
+            player.sendMessage(ChatColor.GOLD + l.charge_message() + " " + config.createAmount);
         }
     }
-    
-    public void chargeTP(Player player)
-    {
-        if (!player.hasPermission("travelpad.nopay"))
-        {
+
+    public void chargeTP(Player player) {
+        if (!player.hasPermission("travelpad.nopay")) {
             economy.withdrawPlayer(player, config.teleportAmount);
-            player.sendMessage(ChatColor.GOLD+l.charge_message()+" "+config.teleportAmount);
+            player.sendMessage(ChatColor.GOLD + l.charge_message() + " " + config.teleportAmount);
         }
-    }    
-    
-    public void refund(Player player)
-    {
-        if (!player.hasPermission("travelpad.nopay"))
-        {        
+    }
+
+    public void refund(Player player) {
+        if (!player.hasPermission("travelpad.nopay")) {
             economy.depositPlayer(player, config.deleteAmount);
-            player.sendMessage(ChatColor.GOLD+l.refund_message()+" "+config.deleteAmount);
+            player.sendMessage(ChatColor.GOLD + l.refund_message() + " " + config.deleteAmount);
         }
-    }   
-    
-    public void refundNoCreate(Player player)
-    {
-        if (!player.hasPermission("travelpad.nopay"))
-        {        
+    }
+
+    public void refundNoCreate(Player player) {
+        if (!player.hasPermission("travelpad.nopay")) {
             economy.depositPlayer(player, config.createAmount);
-            player.sendMessage(ChatColor.GOLD+l.refund_message()+" "+config.deleteAmount);
+            player.sendMessage(ChatColor.GOLD + l.refund_message() + " " + config.deleteAmount);
         }
-    }       
-    
-    public boolean canTeleport(Player player)
-    {
-        if (player.hasPermission("travelpad.nopay"))
-        {
+    }
+
+    public boolean canTeleport(Player player) {
+        if (player.hasPermission("travelpad.nopay")) {
+            return true;
+        } else if (config.economyEnabled == false) {
             return true;
         }
-        else if (config.economyEnabled == false)
-        {
-            return true;
-        }        
         double balance = economy.getBalance(player);
-        if (balance >= config.teleportAmount)
-        {           
+        if (balance >= config.teleportAmount) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
-    } 
-    
-    private Boolean setupEconomy()
-    {
+    }
+
+    private Boolean setupEconomy() {
         RegisteredServiceProvider<Economy> economyProvider = getServer().getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy.class);
         if (economyProvider != null) {
             economy = economyProvider.getProvider();
         }
         return (economy != null);
-    }     
-    
-    public boolean doesPadExist(String name)
-    {
+    }
+
+    public boolean doesPadExist(String name) {
         return manager.getPad(name) != null;
     }
-    
-    public int getPads(Player player)
-    {
+
+    public int getPads(Player player) {
         List<Pad> pads = manager.getPadsFrom(player);
         int has = 0;
-        if (pads != null)
-        {
+        if (pads != null) {
             has = pads.size();
         }
         return has;
     }
-    
-    public boolean canCreate(Player player)
-    {
-        if (player.hasPermission("travelpad.create") || player.isOp())
-        {
+
+    public boolean canCreate(Player player) {
+        if (player.hasPermission("travelpad.create") || player.isOp()) {
             List<UnnamedPad> upads = manager.getUnnamedPadsFrom(player);
-            if (!upads.isEmpty())
-            {  
-                player.sendMessage(ChatColor.RED+l.create_deny_waiting());
+            if (!upads.isEmpty()) {
+                player.sendMessage(ChatColor.RED + l.create_deny_waiting());
                 return false;
-            }   
-            if (config.economyEnabled)
-            {
-                if (!(economy.getBalance(player) >= config.createAmount))
-                {
-                    player.sendMessage(ChatColor.RED+"Not enough money!");
+            }
+            if (config.economyEnabled) {
+                if (!(economy.getBalance(player) >= config.createAmount)) {
+                    player.sendMessage(ChatColor.RED + "Not enough money!");
                     return false;
                 }
             }
             int allow = config.getAllowedPads(player);
             List<Pad> pads = manager.getPadsFrom(player);
             int has = 0;
-            if (pads != null)
-            {
+            if (pads != null) {
                 has = pads.size();
             }
-            if (allow < 0 || allow > has)
-            {
+            if (allow < 0 || allow > has) {
                 return true;
-            }
-            else
-            {
-                player.sendMessage(ChatColor.RED+l.create_deny_max());
+            } else {
+                player.sendMessage(ChatColor.RED + l.create_deny_max());
                 return false;
             }
-        }
-        else
-        {
-            player.sendMessage(ChatColor.RED+l.command_deny_permission());
-           return false; 
+        } else {
+            player.sendMessage(ChatColor.RED + l.command_deny_permission());
+            return false;
         }
     }
 }

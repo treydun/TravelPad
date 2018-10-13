@@ -18,107 +18,80 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
 public class TravelPadBlockListener implements Listener {
-    
+
     private Travelpad plugin;
     private TravelPadManager manager;
     private Configuration config;
-    
-    public TravelPadBlockListener(Travelpad plugin)
-    {
+
+    public TravelPadBlockListener(Travelpad plugin) {
         this.plugin = plugin;
         manager = plugin.manager;
         this.config = manager.config;
     }
-    
+
     @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent event)
-    {
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK)
-        {
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block block = event.getClickedBlock();
-            if (block.getType() == config.center)
-            {
-                if (block.getRelative(BlockFace.EAST).getType() == config.outline && block.getRelative(BlockFace.WEST).getType() == config.outline && block.getRelative(BlockFace.NORTH).getType() == config.outline && block.getRelative(BlockFace.SOUTH).getType() == config.outline)
-                {
+            if (block.getType() == config.center) {
+                if (block.getRelative(BlockFace.EAST).getType() == config.outline && block.getRelative(BlockFace.WEST).getType() == config.outline && block.getRelative(BlockFace.NORTH).getType() == config.outline && block.getRelative(BlockFace.SOUTH).getType() == config.outline) {
                     Player player = event.getPlayer();
-                    if (plugin.canCreate(player))
-                    {
+                    if (plugin.canCreate(player)) {
                         plugin.create(block.getLocation(), player);
                     }
                 }
             }
         }
     }
-    
+
     @EventHandler
-    public void onBlockPlace(BlockPlaceEvent event)
-    {
+    public void onBlockPlace(BlockPlaceEvent event) {
         Block block = event.getBlock();
         Location location = block.getLocation();
         Pad cpad = plugin.getPadAt(location);
         UnnamedPad upad = plugin.getUnnamedPadAt(location);
-        if (cpad != null || upad != null)
-        {
+        if (cpad != null || upad != null) {
             event.setCancelled(true);
-        }      
-        else
-        {
-            if (block.getType() == config.center)
-            {
-                if (block.getRelative(BlockFace.EAST).getType() == config.outline && block.getRelative(BlockFace.WEST).getType() == config.outline && block.getRelative(BlockFace.NORTH).getType() == config.outline && block.getRelative(BlockFace.SOUTH).getType() == config.outline)
-                {
+        } else {
+            if (block.getType() == config.center) {
+                if (block.getRelative(BlockFace.EAST).getType() == config.outline && block.getRelative(BlockFace.WEST).getType() == config.outline && block.getRelative(BlockFace.NORTH).getType() == config.outline && block.getRelative(BlockFace.SOUTH).getType() == config.outline) {
                     Player player = event.getPlayer();
-                    if (plugin.canCreate(player))
-                    {
+                    if (plugin.canCreate(player)) {
                         plugin.create(block.getLocation(), player);
                     }
                 }
             }
         }
     }
-    
+
     @EventHandler
-    public void onBlockBreak(BlockBreakEvent event)
-    {
+    public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
-        if (block.getType() == config.center)
-        {
+        if (block.getType() == config.center) {
             Pad pad = manager.getPadAt(block.getLocation());
             UnnamedPad upad = plugin.getUnnamedPadAt(block.getLocation());
-            if (pad != null)
-            {
-                if (event.getPlayer().hasPermission("travelpad.create"))
-                {
-                    if (manager.config.anyBreak || pad.getOwner().equalsIgnoreCase(event.getPlayer().getName()))
-                    {
+            if (pad != null) {
+                if (event.getPlayer().hasPermission("travelpad.create")) {
+                    if (manager.config.anyBreak || pad.getOwner().equalsIgnoreCase(event.getPlayer().getName())) {
                         plugin.delete(pad);
-                    }
-                    else
-                    {
-                        event.getPlayer().sendMessage(ChatColor.RED+manager.l.command_deny_permission());
+                    } else {
+                        event.getPlayer().sendMessage(ChatColor.RED + manager.l.command_deny_permission());
                         event.setCancelled(true);
                     }
+                } else {
+                    event.getPlayer().sendMessage(ChatColor.RED + manager.l.command_deny_permission());
                 }
-                else
-                {
-                    event.getPlayer().sendMessage(ChatColor.RED+manager.l.command_deny_permission());
-                }
-            }
-            else if (upad != null)
-            {
+            } else if (upad != null) {
                 event.setCancelled(true);
             }
-        }
-        else
-        {
+        } else {
             Location location = block.getLocation();
             Pad pad = plugin.getPadAt(location);
             UnnamedPad upad = plugin.getUnnamedPadAt(location);
-            if (pad != null || upad != null)
-            {
+            if (pad != null || upad != null) {
                 event.setCancelled(true);
             }
         }
     }
-    
+
 }

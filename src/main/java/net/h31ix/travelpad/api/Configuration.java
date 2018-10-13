@@ -94,7 +94,7 @@ public class Configuration {
         if (requireItem)
         {
             takeItem = config.getBoolean("Teleportation Options.Take item");
-            itemType = Material.valueOf(config.getString("Teleportation Options.Item ID"));
+            itemType = Material.valueOf(config.getString("Teleportation Options.Item name"));
         }
         chargeCreate = config.getBoolean("Portal Options.Charge on creation");
         refundDelete = config.getBoolean("Portal Options.Refund on deletion");

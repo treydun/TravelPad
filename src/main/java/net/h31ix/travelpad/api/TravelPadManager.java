@@ -1,8 +1,10 @@
 package net.h31ix.travelpad.api;
 
 import net.h31ix.travelpad.event.TravelPadExpireEvent;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import net.h31ix.travelpad.LangManager;
 import net.h31ix.travelpad.event.TravelPadCreateEvent;
 import net.h31ix.travelpad.event.TravelPadDeleteEvent;
@@ -26,305 +28,267 @@ public class TravelPadManager {
     final Server server = Bukkit.getServer();
     final Plugin plugin;
     public LangManager l = new LangManager();
-    
-    public TravelPadManager(Plugin plugin)
-    {
+
+    public TravelPadManager(Plugin plugin) {
         this.plugin = plugin;
         padList = config.getPads();
-        unvList = config.getUnnamedPads(); 
+        unvList = config.getUnnamedPads();
     }
+
     /**
      * Update the list of pads
-     */        
-    public void update()
-    {
+     */
+    public void update() {
         padList = config.getPads();
-        unvList = config.getUnnamedPads();      
+        unvList = config.getUnnamedPads();
     }
-    
+
     /**
      * Create a new, unnamed pad
      *
-     * @param  location  Location of the center of the pad
-     * @param  player  Player who should own this pad
-     */       
-    public void createPad(final Location location, Player player)
-    {
+     * @param location Location of the center of the pad
+     * @param player   Player who should own this pad
+     */
+    public void createPad(final Location location, Player player) {
         update();
-        final UnnamedPad pad = new UnnamedPad(location,player);
+        final UnnamedPad pad = new UnnamedPad(location, player);
         TravelPadCreateEvent e = new TravelPadCreateEvent(pad);
         plugin.getServer().getPluginManager().callEvent(e);
-        if (!e.isCancelled())
-        {        
+        if (!e.isCancelled()) {
             config.addUnv(pad);
             final Player owner = pad.getOwner();
-            server.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() 
-            {
-                public void run() 
-                {
-                    if(config.isUnv(pad))
-                    {
+            server.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                public void run() {
+                    if (config.isUnv(pad)) {
                         TravelPadExpireEvent e = new TravelPadExpireEvent(pad);
                         plugin.getServer().getPluginManager().callEvent(e);
-                        if (!e.isCancelled())
-                        {
+                        if (!e.isCancelled()) {
                             config.removePad(pad);
-                            owner.sendMessage(ChatColor.RED+l.pad_expire());      
-                            deleteBlocks(location);  
+                            owner.sendMessage(ChatColor.RED + l.pad_expire());
+                            deleteBlocks(location);
                         }
                     }
                 }
-            },      600L);
+            }, 600L);
             final Block block = location.getBlock();
             block.getRelative(BlockFace.EAST).setType(Material.STONE_SLAB);
             block.getRelative(BlockFace.WEST).setType(Material.STONE_SLAB);
             block.getRelative(BlockFace.NORTH).setType(Material.STONE_SLAB);
             block.getRelative(BlockFace.SOUTH).setType(Material.STONE_SLAB);
-            if (config.emitWater)
-            {
+            if (config.emitWater) {
                 block.getRelative(BlockFace.UP).setType(Material.WATER);
-                server.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() 
-                {
-                    public void run() 
-                    {
+                server.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                    public void run() {
                         block.getRelative(BlockFace.UP).setType(Material.AIR);
                     }
                 }, 10L);
             }
             owner.sendMessage(ChatColor.GREEN + l.create_approve_1());
-            owner.sendMessage(ChatColor.GREEN + l.create_approve_2());   
+            owner.sendMessage(ChatColor.GREEN + l.create_approve_2());
             update();
         }
     }
-    
+
     /**
      * Remove an Unnamed Pad
      *
-     * @param  pad  UnnamedPad to be deleted
-     */     
-    public void deleteUnnamedPad(UnnamedPad pad)
-    {
+     * @param pad UnnamedPad to be deleted
+     */
+    public void deleteUnnamedPad(UnnamedPad pad) {
         TravelPadExpireEvent e = new TravelPadExpireEvent(pad);
         plugin.getServer().getPluginManager().callEvent(e);
-        if (!e.isCancelled())
-        {
+        if (!e.isCancelled()) {
             update();
             Location location = pad.getLocation();
             config.removePad(pad);
-            pad.getOwner().sendMessage(ChatColor.RED+l.pad_expire()); 
+            pad.getOwner().sendMessage(ChatColor.RED + l.pad_expire());
             deleteBlocks(location);
             update();
         }
     }
-    
+
     /**
      * Clean up all the blocks around a pad after it has been deleted
      *
-     * @param  location  Location of pad to be destroyed
-     */      
-    public void deleteBlocks(Location location)
-    {
+     * @param location Location of pad to be destroyed
+     */
+    public void deleteBlocks(Location location) {
         World world = location.getWorld();
         Block block = world.getBlockAt(location);
         block.setType(Material.AIR);
         block.getRelative(BlockFace.EAST).setType(Material.AIR);
         block.getRelative(BlockFace.SOUTH).setType(Material.AIR);
         block.getRelative(BlockFace.NORTH).setType(Material.AIR);
-        block.getRelative(BlockFace.WEST).setType(Material.AIR);   
+        block.getRelative(BlockFace.WEST).setType(Material.AIR);
         ItemStack i = new ItemStack(config.center, 1);
         ItemStack e = new ItemStack(config.outline, 4);
         world.dropItemNaturally(block.getLocation(), i);
-        world.dropItemNaturally(block.getLocation(), e);           
+        world.dropItemNaturally(block.getLocation(), e);
     }
-    
+
     /**
      * Change an unnamed pad into a named, operational pad
      *
-     * @param  pad  Unnamed pad to be changed
-     * @param  name  The name of the pad
-     */        
-    public void switchPad(UnnamedPad pad, String name)
-    {
+     * @param pad  Unnamed pad to be changed
+     * @param name The name of the pad
+     */
+    public void switchPad(UnnamedPad pad, String name) {
         TravelPadNameEvent e = new TravelPadNameEvent(pad, name);
         plugin.getServer().getPluginManager().callEvent(e);
-        if (!e.isCancelled())
-        {        
+        if (!e.isCancelled()) {
             config.removePad(pad);
             config.addPad(new Pad(pad.getLocation(), pad.getOwner().getName(), e.getName()));
             update();
         }
     }
-    
+
     /**
      * Remove a Pad
      *
-     * @param  pad  Pad to be deleted
-     */       
-    public void deletePad(Pad pad)
-    {
+     * @param pad Pad to be deleted
+     */
+    public void deletePad(Pad pad) {
         TravelPadDeleteEvent d = new TravelPadDeleteEvent(pad);
         plugin.getServer().getPluginManager().callEvent(d);
-        if (!d.isCancelled())
-        {          
+        if (!d.isCancelled()) {
             update();
             config.removePad(pad);
             Player player = Bukkit.getPlayer(pad.getOwner());
-            if (player != null)
-            {
-                player.sendMessage(ChatColor.RED+l.delete_approve()+" "+ChatColor.WHITE+pad.getName());
+            if (player != null) {
+                player.sendMessage(ChatColor.RED + l.delete_approve() + " " + ChatColor.WHITE + pad.getName());
             }
             deleteBlocks(pad.getLocation());
             update();
         }
     }
-    
+
     /**
      * Check if a name is already in use
      *
-     * @param  name  Name to be checked
-     */       
-    public boolean nameIsValid(String name)
-    {
+     * @param name Name to be checked
+     */
+    public boolean nameIsValid(String name) {
         update();
-        for(Pad pad : padList)
-        {
-            if (pad.getName().equalsIgnoreCase(name))
-            {
+        for (Pad pad : padList) {
+            if (pad.getName().equalsIgnoreCase(name)) {
                 return false;
             }
-        } 
+        }
         return true;
     }
-    
+
     /**
      * Get a pad by it's name
      *
-     * @param  name  Pad's name to be found
+     * @param name Pad's name to be found
      * @return Pad if found, null if no pad by that name
-     */       
-    public Pad getPad(String name)
-    {
+     */
+    public Pad getPad(String name) {
         update();
-        for(Pad pad : padList)
-        {
-            if (pad.getName().equalsIgnoreCase(name))
-            {
+        for (Pad pad : padList) {
+            if (pad.getName().equalsIgnoreCase(name)) {
                 return pad;
             }
-        }  
+        }
         return null;
     }
-    
+
     /**
      * Get a pad by it's location
      *
-     * @param  location  Pad's location to be found
+     * @param location Pad's location to be found
      * @return Pad if found, null if no pad at that location
-     */      
-    public Pad getPadAt(Location location)
-    {
+     */
+    public Pad getPadAt(Location location) {
         update();
-        for(Pad pad : padList)
-        {
-            int x = (int)pad.getLocation().getX();
-            int y = (int)pad.getLocation().getY();
-            int z = (int)pad.getLocation().getZ();
-            int xx = (int)location.getX();
-            int yy = (int)location.getY();
-            int zz = (int)location.getZ();            
-            if (x == xx && y == yy && z == zz)
-            {
+        for (Pad pad : padList) {
+            int x = (int) pad.getLocation().getX();
+            int y = (int) pad.getLocation().getY();
+            int z = (int) pad.getLocation().getZ();
+            int xx = (int) location.getX();
+            int yy = (int) location.getY();
+            int zz = (int) location.getZ();
+            if (x == xx && y == yy && z == zz) {
                 return pad;
             }
         }
         return null;
     }
-    
+
     /**
      * Get an Unnamed Pad by it's location
      *
-     * @param  location  Unnamed Pad's location to be found
+     * @param location Unnamed Pad's location to be found
      * @return Unnamed Pad if found, null if no pad by that name
-     */      
-    public UnnamedPad getUnnamedPadAt(Location location)
-    {
+     */
+    public UnnamedPad getUnnamedPadAt(Location location) {
         update();
-        for(UnnamedPad pad : unvList)
-        {
-            int x = (int)pad.getLocation().getX();
-            int y = (int)pad.getLocation().getY();
-            int z = (int)pad.getLocation().getZ();
-            int xx = (int)location.getX();
-            int yy = (int)location.getY();
-            int zz = (int)location.getZ();            
-            if (x == xx && y == yy && z == zz)
-            {
+        for (UnnamedPad pad : unvList) {
+            int x = (int) pad.getLocation().getX();
+            int y = (int) pad.getLocation().getY();
+            int z = (int) pad.getLocation().getZ();
+            int xx = (int) location.getX();
+            int yy = (int) location.getY();
+            int zz = (int) location.getZ();
+            if (x == xx && y == yy && z == zz) {
                 return pad;
             }
         }
         return null;
-    }   
-    
+    }
+
     /**
      * Get all the pads that a player owns
      *
-     * @param  player  Player to search for
+     * @param player Player to search for
      * @return Set of pads that the player owns, null if they have none.
-     */      
-    public List<Pad> getPadsFrom(Player player)
-    {
+     */
+    public List<Pad> getPadsFrom(Player player) {
         update();
         List<Pad> list = new ArrayList<Pad>();
-        for(Pad pad : padList)
-        {
-            if (pad.getOwner().equalsIgnoreCase(player.getName()))
-            {
+        for (Pad pad : padList) {
+            if (pad.getOwner().equalsIgnoreCase(player.getName())) {
                 list.add(pad);
             }
         }
         return list;
-    }  
-    
+    }
+
     /**
      * Get all the unnamed pads that a player owns
      *
-     * @param  player  Player to search for
+     * @param player Player to search for
      * @return Set of unnamed pads that the player owns, null if they have none.
-     */        
-    public List<UnnamedPad> getUnnamedPadsFrom(Player player)
-    {
+     */
+    public List<UnnamedPad> getUnnamedPadsFrom(Player player) {
         update();
         List<UnnamedPad> list = new ArrayList<UnnamedPad>();
-        for(UnnamedPad pad : unvList)
-        {
-            if (pad.getOwner() == player)
-            {
+        for (UnnamedPad pad : unvList) {
+            if (pad.getOwner() == player) {
                 list.add(pad);
             }
         }
         return list;
-    }     
-    
+    }
+
     /**
      * Get all registered pads
      *
      * @return Set of pads that exists
-     */        
-    public List<Pad> getPads()
-    {
+     */
+    public List<Pad> getPads() {
         update();
         return padList;
     }
-    
+
     /**
      * Get all unregistered pads
      *
      * @return Set of pads that are awaiting naming
-     */       
-    public List<UnnamedPad> getUnnamedPads()
-    {
+     */
+    public List<UnnamedPad> getUnnamedPads() {
         update();
         return unvList;
-    } 
-    
+    }
+
 }
