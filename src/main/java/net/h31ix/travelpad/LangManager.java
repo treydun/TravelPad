@@ -126,5 +126,10 @@ public class LangManager {
     public String pad_expire()
     {
         return lang.getString("pad_expire");
-    }      
+    }
+
+    public String travel_unsafe()
+    {
+        return lang.getString("travel_unsafe");
+    }
 }
