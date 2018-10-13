@@ -32,5 +32,7 @@ pad_expire: Your pad expired because it was not named.
 command_deny_console: You can only use that command in-game!
 command_deny_permission: You don't have permission to do that.
 
+travel_unsafe: That location is unsafe!
+
 
 

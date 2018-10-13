@@ -5,8 +5,10 @@ main: net.h31ix.travelpad.Travelpad
 name: TravelPad
 startup: postworld
 url: http://H31IX.NET/
-version: '1.8.6'
+version: '3.0'
 softdepend: [Vault]
+depend: [Unity]
+api-version: 1.13
 commands:
   travelpad:
     description: Use travelpad

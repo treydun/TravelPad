@@ -1,9 +1,10 @@
 Teleportation Options:
   Require item: false
   Take item: false
-  Item ID: 368
+  Item Name: REDSTONE
   Charge player: false
   Charge amount: 10.0
+  Optional item: ENDER_EYE
   
 Portal Options:
   Charge on creation: false
@@ -13,5 +14,5 @@ Portal Options:
   Allow any player to break: false
   Emit water on creation: true
   #49 = Obsidian 45 = Brick
-  Center block id: 49
-  Outline block id: 45
+  Center block name: OBSIDIAN
+  Outline block name: BRICKS
