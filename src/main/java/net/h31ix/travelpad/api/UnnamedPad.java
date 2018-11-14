@@ -1,6 +1,5 @@
 package net.h31ix.travelpad.api;
 
-import net.h31ix.travelpad.LangManager;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -11,8 +10,8 @@ import org.bukkit.entity.Player;
 
 public class UnnamedPad {
 
-    private Location location = null;
-    private Player owner = null;
+    private Location location;
+    private Player owner;
 
     public UnnamedPad(Location location, Player owner) {
         this.location = location;
