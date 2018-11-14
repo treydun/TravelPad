@@ -25,7 +25,7 @@ public class TravelPadBlockListener implements Listener {
 
     public TravelPadBlockListener(Travelpad plugin) {
         this.plugin = plugin;
-        manager = plugin.manager;
+        manager = plugin.getManager();
         this.config = manager.config;
     }
 

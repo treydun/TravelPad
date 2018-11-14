@@ -10,12 +10,11 @@ import org.bukkit.entity.Player;
  */
 
 public class UnnamedPad {
-    
+
     private Location location = null;
     private Player owner = null;
 
-    public UnnamedPad(Location location, Player owner)
-    {
+    public UnnamedPad(Location location, Player owner) {
         this.location = location;
         this.owner = owner;
     }
@@ -23,22 +22,20 @@ public class UnnamedPad {
     /**
      * Get the location of the pad
      *
-     * @return  location  Location of the obsidian center of the pad
-     */       
-    public Location getLocation()
-    {
+     * @return location  Location of the obsidian center of the pad
+     */
+    public Location getLocation() {
         return location;
     }
-    
+
     /**
      * Get the owner of the pad
      *
      * @return owner Player who owns the pad's name
-     */         
-    public Player getOwner()
-    {
+     */
+    public Player getOwner() {
         return owner;
     }
-    
+
 }
 

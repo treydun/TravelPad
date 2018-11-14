@@ -14,6 +14,7 @@ import net.milkbowl.vault.economy.Economy;
 import org.bukkit.ChatColor;
 import org.bukkit.Effect;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
@@ -276,6 +277,18 @@ public class Travelpad extends JavaPlugin {
             player.sendMessage(ChatColor.RED + l.command_deny_permission());
             return false;
         }
+    }
+
+    public TravelPadManager getManager() {
+        return manager;
+    }
+
+    public LangManager getLang() {
+        return l;
+    }
+
+    public Configuration getTheConfig() {
+        return config;
     }
 }
 
