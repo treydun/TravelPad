@@ -21,9 +21,9 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Travelpad extends JavaPlugin {
-    public Configuration config;
-    public TravelPadManager manager;
-    public LangManager l;
+    private Configuration config;
+    private TravelPadManager manager;
+    private LangManager l;
     private Economy economy;
 
     @Override
