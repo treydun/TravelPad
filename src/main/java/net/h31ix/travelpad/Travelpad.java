@@ -11,10 +11,10 @@ import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.api.TravelPadManager;
 import net.h31ix.travelpad.api.UnnamedPad;
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Effect;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
@@ -26,6 +26,8 @@ public class Travelpad extends JavaPlugin {
     private TravelPadManager manager;
     private LangManager l;
     private Economy economy;
+
+    public static final String PLUGIN_PREFIX_COLOR = ChatColor.DARK_GRAY + "[" + ChatColor.BLUE + "TravelPads" + ChatColor.DARK_GRAY + "] " + ChatColor.GRAY;
 
     @Override
     public void onDisable() {
@@ -125,7 +127,7 @@ public class Travelpad extends JavaPlugin {
     public void delete(Pad pad) {
         double returnValue = config.deleteAmount;
         if (returnValue != 0) {
-            refund(getServer().getPlayer(pad.getOwner()));
+            refund(getServer().getPlayer(pad.ownerUUID()));
         }
         manager.deletePad(pad);
     }
@@ -279,16 +281,32 @@ public class Travelpad extends JavaPlugin {
         }
     }
 
-    public TravelPadManager getManager() {
+    public TravelPadManager Manager() {
         return manager;
     }
 
-    public LangManager getLang() {
+    public LangManager Lang() {
         return l;
     }
 
-    public Configuration getTheConfig() {
+    public Configuration Config() {
         return config;
+	}
+
+    public static void log(String str) {
+        //Bukkit.getLogger().info("TPadz "+str);
+        Bukkit.getLogger().info(PLUGIN_PREFIX_COLOR + " " + str);
+    }
+
+    public static String formatLocation(Location loc) {
+        if (loc != null) {
+            if (loc.getWorld() != null)
+                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " " + loc.getWorld().getName();
+            else
+                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " null world.";
+        } else {
+            return "Location is null, File corruption may ensue";
+        }
     }
 }
 

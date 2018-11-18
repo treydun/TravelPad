@@ -8,16 +8,14 @@ import org.bukkit.event.Listener;
 public class TravelPadListener implements Listener {
 
     private Travelpad plugin;
-    private Configuration config;
 
     public TravelPadListener(Travelpad plugin) {
         this.plugin = plugin;
-        config = plugin.getTheConfig();
     }
 
     @EventHandler
     public void onPadExpire(TravelPadExpireEvent event) {
-        if (config.economyEnabled) {
+        if (plugin.Config().economyEnabled) {
             plugin.refundNoCreate(event.getPad().getOwner());
         }
     }

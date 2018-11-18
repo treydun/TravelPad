@@ -3,8 +3,14 @@ package net.h31ix.travelpad;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.api.TravelPadManager;
 import net.h31ix.travelpad.event.TravelPadTeleportEvent;
-import org.bukkit.ChatColor;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -17,14 +23,15 @@ public class TravelPadCommandExecutor implements CommandExecutor {
 
     public TravelPadCommandExecutor(Travelpad plugin) {
         this.plugin = plugin;
-        this.manager = plugin.getManager();
-        this.l = plugin.getLang();
+        this.manager = plugin.Manager();
+        this.l = plugin.Lang();
     }
 
     @Override
     public boolean onCommand(CommandSender cs, Command cmd, String alias, String[] args) {
         if (!(cs instanceof Player)) {
             System.out.println(l.command_deny_console());
+            return true;
         } else {
             Player player = (Player) cs;
             if (args.length == 1) {
@@ -96,7 +103,7 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                     }
                 } else if (args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("d")) {
                     if (plugin.doesPadExist(args[1])) {
-                        if (!manager.getPad(args[1]).getOwner().equalsIgnoreCase(player.getName())) {
+                        if (!manager.getPad(args[1]).ownerUUID().equals(player.getUniqueId())) {
                             if (player.hasPermission("travelpad.delete.all") || player.hasPermission("travelpad.delete.any")) {
                                 manager.deletePad(manager.getPad(args[1]));
                             } else {

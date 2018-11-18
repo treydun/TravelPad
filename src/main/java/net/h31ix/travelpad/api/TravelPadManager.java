@@ -50,7 +50,7 @@ public class TravelPadManager {
      * @param player   Player who should own this pad
      */
     public void createPad(final Location location, Player player) {
-        update();
+        //update();
         final UnnamedPad pad = new UnnamedPad(location, player);
         TravelPadCreateEvent e = new TravelPadCreateEvent(pad);
         plugin.getServer().getPluginManager().callEvent(e);
@@ -81,7 +81,7 @@ public class TravelPadManager {
                     public void run() {
                         block.getRelative(BlockFace.UP).setType(Material.AIR);
                     }
-                }, 10L);
+                }, 7L);
             }
             owner.sendMessage(ChatColor.GREEN + l.create_approve_1());
             owner.sendMessage(ChatColor.GREEN + l.create_approve_2());
@@ -137,7 +137,7 @@ public class TravelPadManager {
         plugin.getServer().getPluginManager().callEvent(e);
         if (!e.isCancelled()) {
             config.removePad(pad);
-            config.addPad(new Pad(pad.getLocation(), pad.getOwner().getName(), e.getName()));
+            config.addPad(new Pad(pad.getLocation(), pad.getOwner().getUniqueId(), e.getName()));
             update();
         }
     }
@@ -153,7 +153,7 @@ public class TravelPadManager {
         if (!d.isCancelled()) {
             update();
             config.removePad(pad);
-            Player player = Bukkit.getPlayer(pad.getOwner());
+            Player player = Bukkit.getPlayer(pad.ownerUUID());
             if (player != null) {
                 player.sendMessage(ChatColor.RED + l.delete_approve() + " " + ChatColor.WHITE + pad.getName());
             }
@@ -168,7 +168,7 @@ public class TravelPadManager {
      * @param name Name to be checked
      */
     public boolean nameIsValid(String name) {
-        update();
+        //update();
         for (Pad pad : padList) {
             if (pad.getName().equalsIgnoreCase(name)) {
                 return false;
@@ -184,7 +184,7 @@ public class TravelPadManager {
      * @return Pad if found, null if no pad by that name
      */
     public Pad getPad(String name) {
-        update();
+        //update();
         for (Pad pad : padList) {
             if (pad.getName().equalsIgnoreCase(name)) {
                 return pad;
@@ -200,7 +200,7 @@ public class TravelPadManager {
      * @return Pad if found, null if no pad at that location
      */
     public Pad getPadAt(Location location) {
-        update();
+        //update();
         for (Pad pad : padList) {
             int x = (int) pad.getLocation().getX();
             int y = (int) pad.getLocation().getY();
@@ -222,7 +222,7 @@ public class TravelPadManager {
      * @return Unnamed Pad if found, null if no pad by that name
      */
     public UnnamedPad getUnnamedPadAt(Location location) {
-        update();
+        //update();
         for (UnnamedPad pad : unvList) {
             int x = (int) pad.getLocation().getX();
             int y = (int) pad.getLocation().getY();
@@ -244,10 +244,10 @@ public class TravelPadManager {
      * @return Set of pads that the player owns, null if they have none.
      */
     public List<Pad> getPadsFrom(Player player) {
-        update();
+        //update();
         List<Pad> list = new ArrayList<Pad>();
         for (Pad pad : padList) {
-            if (pad.getOwner().equalsIgnoreCase(player.getName())) {
+            if (pad.ownerUUID().equals(player.getUniqueId())) {
                 list.add(pad);
             }
         }
@@ -261,7 +261,7 @@ public class TravelPadManager {
      * @return Set of unnamed pads that the player owns, null if they have none.
      */
     public List<UnnamedPad> getUnnamedPadsFrom(Player player) {
-        update();
+        //update();
         List<UnnamedPad> list = new ArrayList<UnnamedPad>();
         for (UnnamedPad pad : unvList) {
             if (pad.getOwner() == player) {
@@ -277,7 +277,7 @@ public class TravelPadManager {
      * @return Set of pads that exists
      */
     public List<Pad> getPads() {
-        update();
+        //update();
         return padList;
     }
 
@@ -287,7 +287,7 @@ public class TravelPadManager {
      * @return Set of pads that are awaiting naming
      */
     public List<UnnamedPad> getUnnamedPads() {
-        update();
+        //update();
         return unvList;
     }
 

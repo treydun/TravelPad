@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -19,7 +20,7 @@ public class Configuration {
 
     private File configFile = new File("plugins/TravelPad/config.yml");
     private FileConfiguration config;
-    public File padsFile = new File("plugins/TravelPad/pads.yml");
+    public File padsFile = new File("plugins/TravelPad/pads2.yml");
     public FileConfiguration pads;
 
     public boolean requireItem = false;
@@ -40,8 +41,8 @@ public class Configuration {
 
     public boolean emitWater = false;
 
-    public Material center = null;
-    public Material outline = null;
+    public Material center = Material.OBSIDIAN;
+    public Material outline = Material.BRICKS;
 
     private List<Pad> padList;
     private List<UnnamedPad> unvList;
@@ -49,6 +50,7 @@ public class Configuration {
     public Configuration() {
         pads = YamlConfiguration.loadConfiguration(padsFile);
         config = YamlConfiguration.loadConfiguration(configFile);
+
         load();
         if (config.getString("Portal Options.Allow any player to break") == null) {
             config.set("Portal Options.Allow any player to break", false);
@@ -176,12 +178,18 @@ public class Configuration {
     }
 
     public void load() {
-        pads = YamlConfiguration.loadConfiguration(padsFile);
-        config = YamlConfiguration.loadConfiguration(configFile);
+        //TODO: Threadblocking Disk IO operation, load is called all over the place. Very bad
+        {
+            pads = YamlConfiguration.loadConfiguration(padsFile);
+            config = YamlConfiguration.loadConfiguration(configFile);
+        }
+
         List list = pads.getList("pads");
         padList = new ArrayList<Pad>();
         if (list != null) {
             for (int i = 0; i < list.size(); i++) {
+                Pad pad2 = Pad.deserialize((String) list.get(i));
+                /*
                 String[] pad = ((String) list.get(i)).split("/");
                 String name = pad[0];
                 double x = Integer.parseInt(pad[1]);
@@ -190,7 +198,10 @@ public class Configuration {
                 World world = Bukkit.getServer().getWorld(pad[4]);
                 String player = pad[5];
                 Pad pad2 = new Pad(new Location(world, x, y, z), player, name);
-                padList.add(pad2);
+                */
+                if(pad2!=null && pad2.getLocation()!=null && pad2.getLocation().getWorld()!=null){
+                    padList.add(pad2);
+                }
             }
         }
         list = pads.getList("unv");
@@ -214,8 +225,9 @@ public class Configuration {
             padListString = new ArrayList<String>();
             for (int i = 0; i < padList.size(); i++) {
                 Pad pad = (Pad) padList.get(i);
-                Location loc = pad.getLocation();
-                padListString.add(pad.getName() + "/" + (int) loc.getX() + "/" + (int) loc.getY() + "/" + (int) loc.getZ() + "/" + loc.getWorld().getName() + "/" + pad.getOwner());
+                padListString.add(Pad.serialize(pad));
+                //Location loc = pad.getLocation();
+                //padListString.add(pad.getName() + "/" + (int) loc.getX() + "/" + (int) loc.getY() + "/" + (int) loc.getZ() + "/" + loc.getWorld().getName() + "/" + pad.getOwner());
             }
             pads.set("pads", padListString);
         }

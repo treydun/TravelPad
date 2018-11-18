@@ -25,7 +25,7 @@ public class TravelPadBlockListener implements Listener {
 
     public TravelPadBlockListener(Travelpad plugin) {
         this.plugin = plugin;
-        manager = plugin.getManager();
+        manager = plugin.Manager();
         this.config = manager.config;
     }
 
@@ -72,7 +72,7 @@ public class TravelPadBlockListener implements Listener {
             UnnamedPad upad = plugin.getUnnamedPadAt(block.getLocation());
             if (pad != null) {
                 if (event.getPlayer().hasPermission("travelpad.create")) {
-                    if (manager.config.anyBreak || pad.getOwner().equalsIgnoreCase(event.getPlayer().getName())) {
+                    if (manager.config.anyBreak || pad.ownerUUID().equals(event.getPlayer().getUniqueId())) {
                         plugin.delete(pad);
                     } else {
                         event.getPlayer().sendMessage(ChatColor.RED + manager.l.command_deny_permission());
