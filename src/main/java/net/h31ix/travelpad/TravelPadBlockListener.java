@@ -9,6 +9,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -35,9 +37,23 @@ public class TravelPadBlockListener implements Listener {
             Block block = event.getClickedBlock();
             if (block.getType() == config.center) {
                 if (block.getRelative(BlockFace.EAST).getType() == config.outline && block.getRelative(BlockFace.WEST).getType() == config.outline && block.getRelative(BlockFace.NORTH).getType() == config.outline && block.getRelative(BlockFace.SOUTH).getType() == config.outline) {
-                    Player player = event.getPlayer();
-                    if (plugin.canCreate(player)) {
-                        plugin.create(block.getLocation(), player);
+                    if (plugin.getPadAt(block.getLocation()) == null) {
+                        Player player = event.getPlayer();
+                        if (plugin.canCreate(player)) {
+                            plugin.create(block.getLocation(), player);
+                        }
+                    } else {
+                        event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + "There is already a Tpad at this location!");
+                    }
+                }
+            } else if (block.getType() == Material.getMaterial("SIGN_POST") || block.getType() == Material.getMaterial("WALL_SIGN")) {
+                if (!event.isCancelled()) {
+                    {
+                        BlockState bState = block.getState();
+                        Sign sign = (Sign) bState;
+                        if (sign.getLine(1).startsWith("/t tp ")) {
+                            event.getPlayer().performCommand(sign.getLine(1).substring(1));
+                        }
                     }
                 }
             }

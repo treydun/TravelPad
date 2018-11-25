@@ -59,7 +59,6 @@ public class Travelpad extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(new TravelPadBlockListener(this), this);
         pm.registerEvents(new TravelPadListener(this), this);
-        pm.registerEvents(new TravelPadSignListener(this), this);
         getCommand("travelpad").setExecutor(new TravelPadCommandExecutor(this));
     }
 
