@@ -29,6 +29,10 @@ public class TravelPadCommandExecutor implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender cs, Command cmd, String alias, String[] args) {
+        if (args.length == 1 && args[0].equalsIgnoreCase("reload") && cs.hasPermission("tavelpad.reload")) {
+            plugin.Config().reload();
+            return true;
+        }
         if (!(cs instanceof Player)) {
             System.out.println(l.command_deny_console());
             return true;

@@ -21,7 +21,7 @@ public class Configuration {
     private File configFile = new File("plugins/TravelPad/config.yml");
     private FileConfiguration config;
     public File padsFile = new File("plugins/TravelPad/pads2.yml");
-    public FileConfiguration pads;
+    public FileConfiguration padsYaml;
 
     public boolean requireItem = false;
     public boolean takeItem = false;
@@ -48,74 +48,16 @@ public class Configuration {
     private List<UnnamedPad> unvList;
 
     public Configuration() {
-        pads = YamlConfiguration.loadConfiguration(padsFile);
-        config = YamlConfiguration.loadConfiguration(configFile);
-
+        loadPadsFromDisk();
         load();
-        if (config.getString("Portal Options.Allow any player to break") == null) {
-            config.set("Portal Options.Allow any player to break", false);
-            try {
-                config.save(configFile);
-            } catch (IOException ex) {
-                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        if (config.getString("Portal Options.Emit water on creation") == null) {
-            config.set("Portal Options.Emit water on creation", true);
-            try {
-                config.save(configFile);
-            } catch (IOException ex) {
-                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        if (config.getString("Portal Options.Center block id") == null) {
-            config.set("Portal Options.Center block id", 49);
-            try {
-                config.save(configFile);
-            } catch (IOException ex) {
-                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        if (config.getString("Portal Options.Outline block id") == null) {
-            config.set("Portal Options.Outline block id", 45);
-            try {
-                config.save(configFile);
-            } catch (IOException ex) {
-                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        center = Material.valueOf(config.getString("Portal Options.Center block name"));
-        outline = Material.valueOf(config.getString("Portal Options.Outline block name"));
-        anyBreak = config.getBoolean("Portal Options.Allow any player to break");
-        emitWater = config.getBoolean("Portal Options.Emit water on creation");
-        requireItem = config.getBoolean("Teleportation Options.Require item");
-        if (requireItem) {
-            takeItem = config.getBoolean("Teleportation Options.Take item");
-            itemType = Material.valueOf(config.getString("Teleportation Options.Item name"));
-        }
-        chargeCreate = config.getBoolean("Portal Options.Charge on creation");
-        refundDelete = config.getBoolean("Portal Options.Refund on deletion");
-        chargeTeleport = config.getBoolean("Teleportation Options.Charge player");
-        if (chargeCreate || refundDelete || chargeTeleport) {
-            economyEnabled = true;
-        }
-        if (chargeCreate) {
-            createAmount = config.getDouble("Portal Options.Creation charge");
-        }
-        if (refundDelete) {
-            deleteAmount = config.getDouble("Portal Options.Deletion return");
-        }
-        if (chargeTeleport) {
-            teleportAmount = config.getDouble("Teleportation Options.Charge amount");
-        }
     }
 
-    public List getPads() {
+    public List<Pad> getPads() {
         load();
         return padList;
     }
 
-    public List getUnnamedPads() {
+    public List<UnnamedPad> getUnnamedPads() {
         load();
         return unvList;
     }
@@ -177,18 +119,93 @@ public class Configuration {
         save();
     }
 
-    public void load() {
-        //TODO: Threadblocking Disk IO operation, load is called all over the place. Very bad
-        {
-            pads = YamlConfiguration.loadConfiguration(padsFile);
-            config = YamlConfiguration.loadConfiguration(configFile);
-        }
+    public void reload() {
+        load();
+    }
 
-        List list = pads.getList("pads");
+    /**
+     * TODO: Threadblocking Method
+     */
+    public void load() {
+        loadConfigFromDisk();
+        importConfigFromYaml();
+        loadPadsFromDisk();
+        importPadsFromYaml();
+    }
+
+    public void loadConfigFromDisk() {
+        config = YamlConfiguration.loadConfiguration(configFile);
+    }
+
+    public void importConfigFromYaml() {
+        if (config.getString("Portal Options.Allow any player to break") == null) {
+            config.set("Portal Options.Allow any player to break", false);
+            try {
+                config.save(configFile);
+            } catch (IOException ex) {
+                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        if (config.getString("Portal Options.Emit water on creation") == null) {
+            config.set("Portal Options.Emit water on creation", true);
+            try {
+                config.save(configFile);
+            } catch (IOException ex) {
+                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        if (config.getString("Portal Options.Center block name") == null) {
+            config.set("Portal Options.Center block name", "OBSIDIAN");
+            try {
+                config.save(configFile);
+            } catch (IOException ex) {
+                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        if (config.getString("Portal Options.Outline block name") == null) {
+            config.set("Portal Options.Outline block name", "BRICKS");
+            try {
+                config.save(configFile);
+            } catch (IOException ex) {
+                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        center = Material.valueOf(config.getString("Portal Options.Center block name"));
+        outline = Material.valueOf(config.getString("Portal Options.Outline block name"));
+        anyBreak = config.getBoolean("Portal Options.Allow any player to break");
+        emitWater = config.getBoolean("Portal Options.Emit water on creation");
+        requireItem = config.getBoolean("Teleportation Options.Require item");
+        if (requireItem) {
+            takeItem = config.getBoolean("Teleportation Options.Take item");
+            itemType = Material.valueOf(config.getString("Teleportation Options.Item name"));
+        }
+        chargeCreate = config.getBoolean("Portal Options.Charge on creation");
+        refundDelete = config.getBoolean("Portal Options.Refund on deletion");
+        chargeTeleport = config.getBoolean("Teleportation Options.Charge player");
+        if (chargeCreate || refundDelete || chargeTeleport) {
+            economyEnabled = true;
+        }
+        if (chargeCreate) {
+            createAmount = config.getDouble("Portal Options.Creation charge");
+        }
+        if (refundDelete) {
+            deleteAmount = config.getDouble("Portal Options.Deletion return");
+        }
+        if (chargeTeleport) {
+            teleportAmount = config.getDouble("Teleportation Options.Charge amount");
+        }
+    }
+
+    public void loadPadsFromDisk() {
+        padsYaml = YamlConfiguration.loadConfiguration(padsFile);
+    }
+
+    public void importPadsFromYaml() {
+        List<String> list = padsYaml.getStringList("pads");
         padList = new ArrayList<Pad>();
         if (list != null) {
             for (int i = 0; i < list.size(); i++) {
-                Pad pad2 = Pad.deserialize((String) list.get(i));
+                Pad pad2 = Pad.deserialize(list.get(i));
                 /*
                 String[] pad = ((String) list.get(i)).split("/");
                 String name = pad[0];
@@ -199,15 +216,16 @@ public class Configuration {
                 String player = pad[5];
                 Pad pad2 = new Pad(new Location(world, x, y, z), player, name);
                 */
-                if(pad2!=null && pad2.getLocation()!=null && pad2.getLocation().getWorld()!=null){
+                if (pad2 != null && pad2.getLocation() != null && pad2.getLocation().getWorld() != null) {
                     padList.add(pad2);
                 }
             }
         }
-        list = pads.getList("unv");
+        list = padsYaml.getStringList("unv");
         unvList = new ArrayList<UnnamedPad>();
         if (list != null) {
             for (int i = 0; i < list.size(); i++) {
+                /*
                 String[] pad = ((String) list.get(i)).split("/");
                 double x = Integer.parseInt(pad[0]);
                 double y = Integer.parseInt(pad[1]);
@@ -215,6 +233,8 @@ public class Configuration {
                 World world = Bukkit.getServer().getWorld(pad[3]);
                 String player = pad[4];
                 unvList.add(new UnnamedPad(new Location(world, x, y, z), Bukkit.getPlayer(player)));
+                */
+                unvList.add(UnnamedPad.deserialize((String)list.get(i)));
             }
         }
     }
@@ -229,19 +249,21 @@ public class Configuration {
                 //Location loc = pad.getLocation();
                 //padListString.add(pad.getName() + "/" + (int) loc.getX() + "/" + (int) loc.getY() + "/" + (int) loc.getZ() + "/" + loc.getWorld().getName() + "/" + pad.getOwner());
             }
-            pads.set("pads", padListString);
+            padsYaml.set("pads", padListString);
         }
         if (unvList != null) {
             padListString = new ArrayList<String>();
             for (int i = 0; i < unvList.size(); i++) {
                 UnnamedPad pad = (UnnamedPad) unvList.get(i);
+
                 Location loc = pad.getLocation();
-                padListString.add((int) loc.getX() + "/" + (int) loc.getY() + "/" + (int) loc.getZ() + "/" + loc.getWorld().getName() + "/" + pad.getOwner().getName());
+                padListString.add((int) loc.getX() + "/" + (int) loc.getY() + "/" + (int) loc.getZ() + "/" + loc.getWorld().getName() + "/" + pad.getOwner());
             }
-            pads.set("unv", padListString);
+            padsYaml.set("unv", padListString);
         }
+
         try {
-            pads.save(padsFile);
+            padsYaml.save(padsFile);
         } catch (IOException ex) {
             Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
         }

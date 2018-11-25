@@ -1,7 +1,12 @@
 package net.h31ix.travelpad.api;
 
+import net.h31ix.travelpad.Travelpad;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
+
+import java.util.UUID;
 
 /**
  * <p>
@@ -11,11 +16,11 @@ import org.bukkit.entity.Player;
 public class UnnamedPad {
 
     private Location location;
-    private Player owner;
+    private UUID ownerUUID;
 
-    public UnnamedPad(Location location, Player owner) {
+    public UnnamedPad(Location location, UUID ownerUUID) {
         this.location = location;
-        this.owner = owner;
+        this.ownerUUID = ownerUUID;
     }
 
     /**
@@ -32,9 +37,38 @@ public class UnnamedPad {
      *
      * @return owner Player who owns the pad's name
      */
-    public Player getOwner() {
-        return owner;
+    public UUID getOwner() {
+        return ownerUUID;
     }
 
+    public String serialize() {
+        StringBuilder builder = new StringBuilder(location.getWorld().getName());
+        builder.append(Travelpad.DELIMINATOR);
+        builder.append(location.getBlockX());
+        builder.append(Travelpad.DELIMINATOR);
+        builder.append(location.getBlockY());
+        builder.append(Travelpad.DELIMINATOR);
+        builder.append(location.getBlockZ());
+        builder.append(Travelpad.DELIMINATOR);
+        builder.append(ownerUUID.toString());
+        return builder.toString();
+    }
+
+    public static UnnamedPad deserialize(String serialized){
+        String[] padData = serialized.split("/");
+        UnnamedPad uPad=null;
+        if(padData.length==5) {
+            World world = Bukkit.getWorld(padData[0]);
+            if (world != null) {
+                int x = Integer.parseInt(padData[1]);
+                int y = Integer.parseInt(padData[2]);
+                int z = Integer.parseInt(padData[3]);
+                Location location = new Location(world, x, y, z);
+                UUID ownerID = UUID.fromString(padData[4]);
+                uPad = new UnnamedPad(location, ownerID);
+            }
+        }
+        return uPad;
+    }
 }
 

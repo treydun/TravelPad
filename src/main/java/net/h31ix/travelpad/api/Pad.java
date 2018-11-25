@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 
 import net.h31ix.travelpad.Travelpad;
+import org.bukkit.World;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 
 import java.util.HashMap;
@@ -30,7 +31,7 @@ import java.util.UUID;
 //how many hits per week? reset it each sort? true organic popularity
 //world name? or uuid? i added world name to new pad because when its missing the pads would refuse to load
 
-public class Pad implements ConfigurationSerializable {
+public class Pad {
 
     private Location location;
     private String name;
@@ -96,68 +97,51 @@ public class Pad implements ConfigurationSerializable {
         return name + " " + Travelpad.formatLocation(location) + " " + ownerUUID;
     }
 
-    private static final String DELIMINATOR = "/";
-
     public static String serialize(Pad pad) {
         StringBuilder padString = new StringBuilder(pad.getName());
-        padString.append(DELIMINATOR);
+        padString.append(Travelpad.DELIMINATOR);
+        padString.append(pad.getLocation().getWorld().getName());
+        padString.append(Travelpad.DELIMINATOR);
         padString.append(pad.getLocation().getX());
-        padString.append(DELIMINATOR);
+        padString.append(Travelpad.DELIMINATOR);
         padString.append(pad.getLocation().getY());
-        padString.append(DELIMINATOR);
+        padString.append(Travelpad.DELIMINATOR);
         padString.append(pad.getLocation().getZ());
-        padString.append(DELIMINATOR);
-        padString.append(pad.getLocation().getWorld().getUID());
-        padString.append(DELIMINATOR);
-        padString.append(pad.ownerName);
-        padString.append(DELIMINATOR);
-        padString.append(pad.ownerUUID);
+        padString.append(Travelpad.DELIMINATOR);
+        padString.append(pad.ownerUUID.toString());
         return padString.toString();
     }
 
     public static Pad deserialize(String serialized) {
         String[] padData = serialized.split("/");
         Pad pad=null;
-        if(padData.length==7) {
-            //Legacy Pad
-            Location location = new Location(Bukkit.getServer().getWorld(padData[4]), Integer.parseInt(padData[1]), Integer.parseInt(padData[2]), Integer.parseInt(padData[3]));
-            if(location!=null){
-                pad = new Pad(location, UUID.fromString(padData[6]), padData[0]);
+
+        if(padData.length==6) {
+            //Tpads 3.0 Name/World/X/Y/Z/OwnerUUID
+           World world = Bukkit.getWorld(padData[1]);
+           if(world!=null) {
+               int x = Integer.parseInt(padData[2]);
+               int y = Integer.parseInt(padData[3]);
+               int z = Integer.parseInt(padData[4]);
+               Location location = new Location(world, x, y, z);
+               UUID ownerID = UUID.fromString(padData[5]);
+               pad = new Pad(location, ownerID, padData[0]);
+           }
+        } else if(padData.length==7) {
+            //Tpads 2.0 Name/X/Y/Z/World/OwnerName/OwnerUUID
+            World world = Bukkit.getWorld(padData[4]);
+            if(world!=null) {
+                int x = Integer.parseInt(padData[1]);
+                int y = Integer.parseInt(padData[2]);
+                int z = Integer.parseInt(padData[3]);
+                Location location = new Location(world, x, y, z);
+                UUID ownerID = UUID.fromString(padData[6]);
+                pad = new Pad(location, ownerID, padData[0]);
                 pad.setOwnerName(padData[5]);
             }
-        } else if (padData.length==10) {
-            //Modern Pad - Param Length may change
-            //
         } else {
             System.out.print("Tpads Error: Failed to deserialize "+serialized+" := Incorrect Parameter Length");
         }
         return pad;
-    }
-
-    public static Pad deserialize(Map<String, Object> map){
-        Pad pad = new Pad((Location)map.get("location"), UUID.fromString((String)map.get("ownerUUID")), (String)map.get("name"));
-        if(map.containsKey("ownerName")){
-            pad.setOwnerName((String)map.get("ownerName"));
-        }
-        return pad;
-    }
-
-    @Override
-    public Map<String, Object> serialize() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("location", location);
-        map.put("name", name);
-        map.put("ownerUUID", ownerUUID);
-        if(!ownerName.isEmpty())
-            map.put("ownerName", ownerName);
-        if(publicPad)
-            map.put("public", true);
-        if(!description.isEmpty())
-            map.put("description", description);
-        if(lastUsed>0L)
-            map.put("lastUsed", lastUsed);
-        if(prepaidTeleports>0)
-            map.put("prepaidTeleports", prepaidTeleports);
-        return map;
     }
 }

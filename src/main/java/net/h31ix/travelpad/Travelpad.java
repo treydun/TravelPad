@@ -29,6 +29,8 @@ public class Travelpad extends JavaPlugin {
 
     public static final String PLUGIN_PREFIX_COLOR = ChatColor.DARK_GRAY + "[" + ChatColor.BLUE + "TravelPads" + ChatColor.DARK_GRAY + "] " + ChatColor.GRAY;
 
+    public static final String DELIMINATOR = "/";
+
     @Override
     public void onDisable() {
     }
