@@ -100,14 +100,15 @@ public class TravelPadBlockListener implements Listener {
             } else if (upad != null) {
                 event.setCancelled(true);
             }
-        } else {
+        }
+        /* remove the 'any' block break check. resource heavy with lots of pads
+        else {
             Location location = block.getLocation();
             Pad pad = plugin.getPadAt(location);
             UnnamedPad upad = plugin.getUnnamedPadAt(location);
             if (pad != null || upad != null) {
                 event.setCancelled(true);
             }
-        }
+        } */
     }
-
 }
