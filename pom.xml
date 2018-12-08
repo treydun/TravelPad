@@ -28,7 +28,7 @@
         <dependency>
             <groupId>com.buildatnight.unity</groupId>
             <artifactId>unity</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>0.2</version>
         </dependency>
 
         <dependency>

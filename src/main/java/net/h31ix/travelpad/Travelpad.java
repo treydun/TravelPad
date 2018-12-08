@@ -34,6 +34,7 @@ public class Travelpad extends JavaPlugin {
 
     @Override
     public void onDisable() {
+
     }
 
     @Override
@@ -51,8 +52,8 @@ public class Travelpad extends JavaPlugin {
         if (!new File("plugins/TravelPad/lang.yml").exists()) {
             saveResource("lang.yml", false);
         }
+        config=new Configuration(this);
         manager = new TravelPadManager(this);
-        config = manager.config;
         l = new LangManager();
         if (config.economyEnabled) {
             setupEconomy();
@@ -64,7 +65,7 @@ public class Travelpad extends JavaPlugin {
     }
 
     public boolean namePad(Player player, String name) {
-        Object[] pads = manager.getUnnamedPadsFrom(player).toArray();
+        Object[] pads = manager.getUnnamedPadsFrom(player.getUniqueId()).toArray();
         if (pads.length == 0) {
             return false;
         } else {
@@ -74,42 +75,8 @@ public class Travelpad extends JavaPlugin {
         }
     }
 
-    public Pad getPadAt(Location location) {
-        List<Pad> list = manager.getPads();
-        for (Pad pad : list) {
-            int padX = (int) pad.getLocation().getX();
-            int padY = (int) pad.getLocation().getY();
-            int padZ = (int) pad.getLocation().getZ();
-            String padWorld = pad.getLocation().getWorld().getName();
-            int locX = (int) location.getX();
-            int locY = (int) location.getY();
-            int locZ = (int) location.getZ();
-            String locWorld = location.getWorld().getName();
-            if (padX <= locX + 2 && padX >= locX - 2 && padY <= locY + 2 && padY >= locY - 2 && padZ <= locZ + 2 && padZ >= locZ - 2 && padWorld.equals(locWorld)) {
-                return pad;
-            }
-        }
-        return null;
-    }
-
-    public UnnamedPad getUnnamedPadAt(Location location) {
-        List<UnnamedPad> list = manager.getUnnamedPads();
-        for (UnnamedPad pad : list) {
-            int x = (int) pad.getLocation().getX();
-            int y = (int) pad.getLocation().getY();
-            int z = (int) pad.getLocation().getZ();
-            int xx = (int) location.getX();
-            int yy = (int) location.getY();
-            int zz = (int) location.getZ();
-            if (x <= xx + 2 && x >= xx - 2 && y <= yy + 2 && y >= yy - 2 && z <= zz + 2 && z >= zz - 2) {
-                return pad;
-            }
-        }
-        return null;
-    }
-
     public boolean hasPad(Player player) {
-        List<Pad> pads = manager.getPadsFrom(player);
+        List<Pad> pads = manager.getPadsFrom(player.getUniqueId());
         if (pads.size() > 0) {
             return true;
         } else {
@@ -181,11 +148,20 @@ public class Travelpad extends JavaPlugin {
                 player.getWorld().playEffect(player.getLocation().add(getRandom(), getRandom(), getRandom()), Effect.SMOKE, 3);
             }
             loc.getChunk().load();
-            player.teleport(loc);
-            player.sendMessage(ChatColor.GREEN + l.travel_message());
-            for (int i = 0; i != 32; i++) {
-                player.getWorld().playEffect(loc.add(getRandom(), getRandom(), getRandom()), Effect.SMOKE, 3);
-            }
+            //Delay teleportation to allow the server time to load the chunk.
+            getServer().getScheduler().runTaskLater(this, new Runnable() {
+                @Override
+                public void run() {
+                    if(player.isOnline()){
+                        player.teleport(loc);
+                        player.sendMessage(ChatColor.GREEN + l.travel_message());
+                        for (int i = 0; i != 32; i++) {
+                            player.getWorld().playEffect(loc.add(getRandom(), getRandom(), getRandom()), Effect.SMOKE, 3);
+                        }
+                    }
+                }
+            }, 4);
+
         }
     }
 
@@ -244,7 +220,7 @@ public class Travelpad extends JavaPlugin {
     }
 
     public int getPads(Player player) {
-        List<Pad> pads = manager.getPadsFrom(player);
+        List<Pad> pads = manager.getPadsFrom(player.getUniqueId());
         int has = 0;
         if (pads != null) {
             has = pads.size();
@@ -254,7 +230,7 @@ public class Travelpad extends JavaPlugin {
 
     public boolean canCreate(Player player) {
         if (player.hasPermission("travelpad.create") || player.isOp()) {
-            List<UnnamedPad> upads = manager.getUnnamedPadsFrom(player);
+            List<UnnamedPad> upads = manager.getUnnamedPadsFrom(player.getUniqueId());
             if (!upads.isEmpty()) {
                 player.sendMessage(ChatColor.RED + l.create_deny_waiting());
                 return false;
@@ -266,7 +242,7 @@ public class Travelpad extends JavaPlugin {
                 }
             }
             int allow = config.getAllowedPads(player);
-            List<Pad> pads = manager.getPadsFrom(player);
+            List<Pad> pads = manager.getPadsFrom(player.getUniqueId());
             int has = 0;
             if (pads != null) {
                 has = pads.size();

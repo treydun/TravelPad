@@ -1,0 +1,7 @@
+#Proposed Format for PadMeta
+#PadName:
+#  public: boolean
+#  description: string
+#  lastused: long
+#  prepaid: integer
+#  direction: Ordinal?
