@@ -1,10 +1,10 @@
 package net.h31ix.travelpad;
 
 import net.h31ix.travelpad.api.Pad;
-import net.h31ix.travelpad.api.UnnamedPad;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;

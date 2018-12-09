@@ -11,8 +11,8 @@ import java.util.UUID;
 import net.h31ix.travelpad.event.TravelPadCreateEvent;
 import net.h31ix.travelpad.event.TravelPadDeleteEvent;
 import net.h31ix.travelpad.event.TravelPadNameEvent;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -76,7 +76,8 @@ public class TravelPadManager {
     }
 
     public void cachePad(Pad pad) {
-        plugin.Config().getPadMeta(pad.getName());
+        //TODO: Continue
+        //plugin.Config().getPadMeta(pad.getName());
         padsByLocation.put(locToString(pad.getLocation()), pad);
         padsByName.put(pad.getName().toLowerCase(), pad);
         List<Pad> pads = padsByUUID.getOrDefault(pad.ownerUUID(), new ArrayList<>());
@@ -411,9 +412,7 @@ public class TravelPadManager {
      * @return Set of pads that exists
      */
     public List<Pad> getPads() {
-        //TODO: CONSIDER RENAMING THIS TO SEE WHAT BREAKS! EASIEST WAY
         Travelpad.log("GETALLPADS BEING CALLED...");
-        //Where is this used :S damn commands? main class? son of a...
         List<Pad> allPads = new ArrayList<>();
         for (String key : padsByName.keySet()) {
             allPads.add(padsByName.get(key));
@@ -428,6 +427,22 @@ public class TravelPadManager {
      */
     public List<UnnamedPad> getUnnamedPads() {
         return unvList;
+    }
+
+    public boolean isSafe(Location loc, Player player) {
+        World world = loc.getWorld();
+        Block block = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 2, loc.getBlockZ());
+        Block block1 = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
+        Block block2 = world.getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        if (!(block1.getType() == Material.AIR || block2.getType() == Material.AIR)) {
+            player.sendMessage(ChatColor.RED + "Suffocated");
+            return false;//not safe, suffocated
+        } else if (block.getRelative(BlockFace.DOWN).getType() != Material.OBSIDIAN) {
+            player.sendMessage(ChatColor.RED + "Not a valid tpad?" + block.getRelative(BlockFace.DOWN).getType().toString());
+            player.sendMessage("X:" + block.getX() + " Y:" + block.getY() + " Z:" + block.getZ());
+            return false;
+        }
+        return true; //assume passed
     }
 
 }

@@ -102,6 +102,7 @@ public class Travelpad extends JavaPlugin {
     }
 
     public void create(Location location, Player player) {
+        //TODO: Switch to allow creation of Admin pads
         double createValue = config.createAmount;
         if (createValue != 0) {
             charge(player);
@@ -114,6 +115,12 @@ public class Travelpad extends JavaPlugin {
         boolean take = false;
         boolean found = false;
         ItemStack s = null;
+        loc.setY(loc.getY() + 1);
+        if (!Manager().isSafe(loc, player)) {
+            //player.sendMessage("X:"+loc.getX()+" Y:"+loc.getY()+" Z:"+loc.getZ());
+            //player.sendMessage(ChatColor.RED+l.travel_unsafe());
+            tp = false;
+        }
         if (config.requireItem) {
             s = new ItemStack(config.itemType, 1);
             for (int i = 0; i < player.getInventory().getContents().length; i++) {
@@ -196,7 +203,7 @@ public class Travelpad extends JavaPlugin {
     public boolean canTeleport(Player player) {
         if (player.hasPermission("travelpad.nopay")) {
             return true;
-        } else if (config.economyEnabled == false) {
+        } else if (!config.economyEnabled) {
             return true;
         }
         double balance = economy.getBalance(player);

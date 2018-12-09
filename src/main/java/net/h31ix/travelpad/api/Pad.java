@@ -123,11 +123,11 @@ public class Pad {
         padString.append(Travelpad.DELIMINATOR);
         padString.append(pad.getLocation().getWorld().getName());
         padString.append(Travelpad.DELIMINATOR);
-        padString.append(pad.getLocation().getX());
+        padString.append(pad.getLocation().getBlockX());
         padString.append(Travelpad.DELIMINATOR);
-        padString.append(pad.getLocation().getY());
+        padString.append(pad.getLocation().getBlockY());
         padString.append(Travelpad.DELIMINATOR);
-        padString.append(pad.getLocation().getZ());
+        padString.append(pad.getLocation().getBlockZ());
         padString.append(Travelpad.DELIMINATOR);
         padString.append(pad.ownerUUID.toString());
         return padString.toString();
