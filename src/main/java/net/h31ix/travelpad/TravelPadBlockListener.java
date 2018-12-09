@@ -35,7 +35,7 @@ public class TravelPadBlockListener implements Listener {
                         && block.getRelative(BlockFace.WEST).getType() == plugin.Config().outline
                         && block.getRelative(BlockFace.NORTH).getType() == plugin.Config().outline
                         && block.getRelative(BlockFace.SOUTH).getType() == plugin.Config().outline) {
-                    if (plugin.getPadAt(block.getLocation()) == null) {
+                    if (plugin.Manager().getPadAt(block.getLocation()) == null) {
                         Player player = event.getPlayer();
                         if (plugin.canCreate(player)) {
                             plugin.create(block.getLocation(), player);
@@ -51,21 +51,21 @@ public class TravelPadBlockListener implements Listener {
                         Sign sign = (Sign) bState;
                         if (sign.getLine(0).equalsIgnoreCase("[Travelpad]")
                                 || sign.getLine(0).equalsIgnoreCase("Travelpad")) {
-                            if(plugin.Manager().getPad(sign.getLine(1))!=null){
+                            if (plugin.Manager().getPad(sign.getLine(1)) != null) {
                                 sign.setLine(0, ChatColor.GREEN + "[Travelpad]");
                             } else {
-                                sign.setLine(0, ChatColor.RED+"[Travelpad]");
-                                event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR+ChatColor.RED+"Error, unable to find the pad "+sign.getLine(1));
+                                sign.setLine(0, ChatColor.RED + "[Travelpad]");
+                                event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Error, unable to find the pad " + sign.getLine(1));
                             }
                         }
                         if (sign.getLine(0).equalsIgnoreCase(ChatColor.GREEN + "{Travelpad]")) {
                             //To validate every teleport or not... If invalid it wouldnt work, turn it red?
                             //Prob a good idea for when pads get removed without the sign users knowing
-                            if(plugin.Manager().getPad(sign.getLine(1))!=null){
+                            if (plugin.Manager().getPad(sign.getLine(1)) != null) {
                                 event.getPlayer().performCommand("t tp " + sign.getLine(1));
                             } else {
-                                sign.setLine(0, ChatColor.RED+"[Travelpad]");
-                                event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR+ChatColor.RED+"Error, unable to find the pad "+sign.getLine(1));
+                                sign.setLine(0, ChatColor.RED + "[Travelpad]");
+                                event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Error, unable to find the pad " + sign.getLine(1));
                             }
                         }
                         //Legacy sign support
@@ -78,15 +78,15 @@ public class TravelPadBlockListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOW)
     public void onBlockPlace(BlockPlaceEvent event) {
-        //TODO: Optimize...
+        //TODO: Optimize... (Switched to single lookup for efficiency. Needs more thought)
         Block block = event.getBlock();
         Location location = block.getLocation();
-        Pad cpad = plugin.getPadAt(location);
-        UnnamedPad upad = plugin.getUnnamedPadAt(location);
-        if (cpad != null || upad != null) {
+        //Was getPadNear()
+        if (plugin.Manager().getPadAt(location) != null || plugin.Manager().getUnnamedPadAt(location) != null) {
             event.setCancelled(true);
+            event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Why are you placing a block where a tpad is, this is a bug!");
         } else {
             if (block.getType() == plugin.Config().center) {
                 if (block.getRelative(BlockFace.EAST).getType() == plugin.Config().outline
@@ -104,11 +104,11 @@ public class TravelPadBlockListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockBreak(BlockBreakEvent event) {
-        //TODO: Optimize...
+        //TODO: Optimize... (Switched to single lookup for efficiency. Needs more thought)
         Block block = event.getBlock();
         if (block.getType() == plugin.Config().center) {
+            //Was getPadNear()
             Pad pad = plugin.Manager().getPadAt(block.getLocation());
-            UnnamedPad upad = plugin.getUnnamedPadAt(block.getLocation());
             if (pad != null) {
                 if (event.getPlayer().hasPermission("travelpad.create")) {
                     if (plugin.Config().anyBreak || pad.ownerUUID().equals(event.getPlayer().getUniqueId())) {
@@ -120,7 +120,7 @@ public class TravelPadBlockListener implements Listener {
                 } else {
                     event.getPlayer().sendMessage(ChatColor.RED + plugin.Lang().command_deny_permission());
                 }
-            } else if (upad != null) {
+            } else if (plugin.Manager().getUnnamedPadAt(block.getLocation()) != null) {
                 event.setCancelled(true);
             }
         }
