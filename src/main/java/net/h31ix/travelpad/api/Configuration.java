@@ -19,7 +19,7 @@ public class Configuration {
     private Travelpad plugin;
     private File configFile = new File("plugins/TravelPad/config.yml");
     private FileConfiguration config;
-    private File padsFile = new File("plugins/TravelPad/pads2.yml");
+    private File padsFile = new File("plugins/TravelPad/pads.yml");
     private FileConfiguration padsYaml;
     private File padsMetaFile = new File("plugins/TravelPad/padmeta.yml");
     private FileConfiguration padsMeta;
@@ -57,6 +57,20 @@ public class Configuration {
         importConfigValues();
         Travelpad.log("Loading pads from disk");
         loadPadsFromDisk();
+        if(padsYaml.getStringList("pads").isEmpty()){
+            File legacyPadsFile = new File("plugins/TravelPad/pads2.yml");
+            if(legacyPadsFile.exists()){
+                Travelpad.log("Legacy pad file detected, upgrading data");
+                FileConfiguration legacyPads = YamlConfiguration.loadConfiguration(legacyPadsFile);
+                if(!legacyPads.getStringList("pads").isEmpty()) {
+                    for(String legacyPadString:legacyPads.getStringList("pads")) {
+                        addPad(Pad.serialize(Pad.deserialize(legacyPadString)));
+                    }
+                    Travelpad.log("Import finished, saving...");
+                }
+            }
+        }
+        Travelpad.log("Loading PadMeta from disk");
         loadPadMetaFromDisk();
     }
 
