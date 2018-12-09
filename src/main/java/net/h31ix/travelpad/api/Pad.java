@@ -1,6 +1,7 @@
 package net.h31ix.travelpad.api;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 
 import net.h31ix.travelpad.Travelpad;
@@ -146,6 +147,8 @@ public class Pad {
                 Location location = new Location(world, x, y, z);
                 UUID ownerID = UUID.fromString(padData[5]);
                 pad = new Pad(location, ownerID, padData[0]);
+            } else {
+                Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR+ ChatColor.RED+"Failed to load a location with "+padData[1]+" world");
             }
         } else if (padData.length == 7) {
             //Tpads 2.0 Name/X/Y/Z/World/OwnerName/OwnerUUID
@@ -158,6 +161,8 @@ public class Pad {
                 UUID ownerID = UUID.fromString(padData[6]);
                 pad = new Pad(location, ownerID, padData[0]);
                 pad.setOwnerName(padData[5]);
+            } else {
+                Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR+ ChatColor.RED+"Failed to load a location with "+padData[4]+" world");
             }
         } else {
             System.out.print("Tpads Error: Failed to deserialize " + serialized + " := Incorrect Parameter Length");

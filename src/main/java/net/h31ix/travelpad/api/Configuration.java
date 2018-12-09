@@ -64,9 +64,16 @@ public class Configuration {
                 FileConfiguration legacyPads = YamlConfiguration.loadConfiguration(legacyPadsFile);
                 if(!legacyPads.getStringList("pads").isEmpty()) {
                     for(String legacyPadString:legacyPads.getStringList("pads")) {
-                        addPad(Pad.serialize(Pad.deserialize(legacyPadString)));
+                        //addPad(Pad.serialize(Pad.deserialize(legacyPadString)));
+                        Pad pad = Pad.deserialize(legacyPadString);
+                        if(pad!=null){
+                            addPad(Pad.serialize(pad));
+                        } else {
+                            Travelpad.log("ERROR PARSING PAD DATA, FAILING IMPORT");
+                        }
                     }
                     Travelpad.log("Import finished, saving...");
+                    save();
                 }
             }
         }
@@ -87,7 +94,9 @@ public class Configuration {
     }
 
     public void addPad(String pad, boolean save) {
-        padsYaml.getStringList("pads").add(pad);
+        List<String> padsList = getPads();
+        padsList.add(pad);
+        padsYaml.set("pads", padsList);
         if (save) {
             saveAsync();
         }
@@ -98,7 +107,9 @@ public class Configuration {
     }
 
     public void addUnnamedPad(String pad, boolean save) {
-        padsYaml.getStringList("unv").add(pad);
+        List<String> padsList = getUnvPads();
+        padsList.add(pad);
+        padsYaml.set("unv",padsList);
         if (save) {
             saveAsync();
         }
@@ -109,7 +120,9 @@ public class Configuration {
     }
 
     public void removePad(String pad, boolean save) {
-        padsYaml.getStringList("pads").remove(pad);
+        List<String> padsList = getPads();
+        padsList.remove(pad);
+        padsYaml.set("pads", padsList);
         if (save) {
             saveAsync();
         }
@@ -120,7 +133,9 @@ public class Configuration {
     }
 
     public void removeUnnamedPad(String pad, boolean save) {
-        padsYaml.getStringList("unv").remove(pad);
+        List<String> padsList = getUnvPads();
+        padsList.remove(pad);
+        padsYaml.set("unv", padsList);
         if (save) {
             saveAsync();
         }

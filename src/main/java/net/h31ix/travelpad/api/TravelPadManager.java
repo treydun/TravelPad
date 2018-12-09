@@ -347,7 +347,8 @@ public class TravelPadManager {
      * @return Unnamed Pad if found, null if no pad by that name
      */
     public UnnamedPad getUnnamedPadAt(Location location) {
-
+        //Unnamed list should always be pretty darn short
+        //Only used for block place and break afaict
         for (UnnamedPad pad : unvList) {
             int x = (int) pad.getLocation().getX();
             int y = (int) pad.getLocation().getY();
@@ -362,6 +363,7 @@ public class TravelPadManager {
         return null;
     }
 
+    /* doesnt appear to ever be needed, naming uses UUID of command sender */
     public UnnamedPad getUnnamedPadNear(Location location) {
         for (UnnamedPad pad : unvList) {
             int x = (int) pad.getLocation().getX();
