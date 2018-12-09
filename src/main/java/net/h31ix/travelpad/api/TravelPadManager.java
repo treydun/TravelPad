@@ -318,6 +318,11 @@ public class TravelPadManager {
     }
 
     public Pad getPadNear(Location location) {
+        //Quick cutaway in case by some miracle we are at the 'right' location. Odds are slim
+        Pad quickPad  = getPadAt(location);
+        if(quickPad!=null){
+            return quickPad;
+        }
         List<Pad> list = getPads();
         for (Pad pad : list) {
             int padX = (int) pad.getLocation().getX();

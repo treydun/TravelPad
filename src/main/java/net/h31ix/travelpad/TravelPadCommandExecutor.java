@@ -40,8 +40,7 @@ public class TravelPadCommandExecutor implements CommandExecutor {
         Player player = (Player) sender;
 
         if (args.length == 1 && (args[0].equalsIgnoreCase("identify") || args[0].equalsIgnoreCase("i"))) {
-            //TODO: Here was a rather important use of the proximity based getPadNear() method It will NOT WORK WELL now
-            Pad pad = plugin.Manager().getPadAt(player.getLocation());
+            Pad pad = plugin.Manager().getPadNear(player.getLocation());
             if (pad != null) {
                 player.sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.GREEN + plugin.Lang().identify_found_message() + ChatColor.WHITE + " " + pad.getName());
             } else {
@@ -103,8 +102,7 @@ public class TravelPadCommandExecutor implements CommandExecutor {
             return true;
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("teleport") || args[0].equalsIgnoreCase("tp"))) {
             if (player.hasPermission("travelpad.teleport") || player.hasPermission("travelpad.tp")) {
-                //TODO: ANOTHER CASE OF #NEEDS getPadNear()
-                Pad pad = plugin.Manager().getPadAt(player.getLocation());
+                Pad pad = plugin.Manager().getPadNear(player.getLocation());
                 if (pad != null || player.hasPermission("travelpad.tpanywhere")) {
                     if (plugin.doesPadExist(args[1])) {
                         if (plugin.canTeleport(player)) {
