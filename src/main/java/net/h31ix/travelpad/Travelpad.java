@@ -10,11 +10,12 @@ import net.h31ix.travelpad.api.Configuration;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.api.TravelPadManager;
 import net.h31ix.travelpad.api.UnnamedPad;
+import net.md_5.bungee.api.ChatColor;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Effect;
 import org.bukkit.Location;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
@@ -133,16 +134,16 @@ public class Travelpad extends JavaPlugin {
                     }
                 }
             }
-            if (found == false) {
-                player.sendMessage(ChatColor.RED + l.travel_deny_item() + " " + s.getType().name().toLowerCase().replaceAll("_", ""));
+            if (!found) {
+                errorMessage(player,l.travel_deny_item() + " " + s.getType().name().toLowerCase().replaceAll("_", ""));
                 tp = false;
             }
         }
         if (config.chargeTeleport && tp) {
-            if (canTeleport(player)) {
+            if (canAffordTeleport(player)) {
                 chargeTP(player);
             } else {
-                player.sendMessage(ChatColor.RED + l.travel_deny_money());
+                errorMessage(player,l.travel_deny_money());
                 tp = false;
             }
         }
@@ -200,7 +201,7 @@ public class Travelpad extends JavaPlugin {
         }
     }
 
-    public boolean canTeleport(Player player) {
+    public boolean canAffordTeleport(Player player) {
         if (player.hasPermission("travelpad.nopay")) {
             return true;
         } else if (!config.economyEnabled) {
@@ -222,9 +223,6 @@ public class Travelpad extends JavaPlugin {
         return (economy != null);
     }
 
-    public boolean doesPadExist(String name) {
-        return manager.getPad(name) != null;
-    }
 
     public int getPads(Player player) {
         List<Pad> pads = manager.getPadsFrom(player.getUniqueId());
@@ -236,15 +234,15 @@ public class Travelpad extends JavaPlugin {
     }
 
     public boolean canCreate(Player player) {
-        if (player.hasPermission("travelpad.create") || player.isOp()) {
+        if (player.hasPermission("travelpad.create") || player.hasPermission("travelpad.admin") || player.isOp()) {
             List<UnnamedPad> upads = manager.getUnnamedPadsFrom(player.getUniqueId());
             if (!upads.isEmpty()) {
-                player.sendMessage(ChatColor.RED + l.create_deny_waiting());
+                errorMessage(player,l.create_deny_waiting());
                 return false;
             }
             if (config.economyEnabled) {
                 if (!(economy.getBalance(player) >= config.createAmount)) {
-                    player.sendMessage(ChatColor.RED + "Not enough money!");
+                    errorMessage(player,"Not enough money!");
                     return false;
                 }
             }
@@ -257,11 +255,11 @@ public class Travelpad extends JavaPlugin {
             if (allow < 0 || allow > has) {
                 return true;
             } else {
-                player.sendMessage(ChatColor.RED + l.create_deny_max());
+                errorMessage(player,l.create_deny_max());
                 return false;
             }
         } else {
-            player.sendMessage(ChatColor.RED + l.command_deny_permission());
+            errorMessage(player,l.command_deny_permission());
             return false;
         }
     }
@@ -279,7 +277,6 @@ public class Travelpad extends JavaPlugin {
 	}
 
     public static void log(String str) {
-        //Bukkit.getLogger().info("TPadz "+str);
         Bukkit.getLogger().info(PLUGIN_PREFIX_COLOR + " " + str);
     }
 
@@ -292,6 +289,14 @@ public class Travelpad extends JavaPlugin {
         } else {
             return "Location is null, File corruption may ensue";
         }
+    }
+
+    public void errorMessage(CommandSender sender, String message){
+        sender.sendMessage(PLUGIN_PREFIX_COLOR+ChatColor.RED+message);
+    }
+
+    public void message(CommandSender sender, String message){
+        sender.sendMessage(PLUGIN_PREFIX_COLOR+ChatColor.GREEN+message);
     }
 }
 

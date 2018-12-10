@@ -39,7 +39,6 @@ public class TravelPadManager {
     /**
      * Update the list of pads from the Config() datastore
      * Does NOT trigger a disk read any longer
-     *
      */
     public void update() {
         //Import padlist from config
@@ -122,7 +121,7 @@ public class TravelPadManager {
      * @param pad pad to remove
      */
     public void removePad(Pad pad) {
-        plugin.Config().removePad(Pad.serialize(pad),true);
+        plugin.Config().removePad(Pad.serialize(pad), true);
         flushPad(pad);
     }
 
@@ -131,7 +130,7 @@ public class TravelPadManager {
     }
 
     public void removePad(UnnamedPad pad) {
-        plugin.Config().removeUnnamedPad(pad.serialize(),true);
+        plugin.Config().removeUnnamedPad(pad.serialize(), true);
         flushPad(pad);
     }
 
@@ -167,7 +166,7 @@ public class TravelPadManager {
                             //Remove expired pad from unnamed list and datastore
                             removePad(pad);//Triggers async save
                             //Send owner message that they didnt name fast enough
-                            owner.sendMessage(ChatColor.RED + plugin.Lang().pad_expire());
+                            plugin.errorMessage(owner,plugin.Lang().pad_expire());
                             //Cleanup pad structure
                             deleteBlocks(location);
                         }
@@ -189,8 +188,8 @@ public class TravelPadManager {
                     }
                 }, 5L);
             }
-            owner.sendMessage(ChatColor.GREEN + plugin.Lang().create_approve_1());
-            owner.sendMessage(ChatColor.GREEN + plugin.Lang().create_approve_2());
+            plugin.message(owner,plugin.Lang().create_approve_1());
+            plugin.message(owner,plugin.Lang().create_approve_2());
         }
     }
 
@@ -265,7 +264,7 @@ public class TravelPadManager {
             removePad(pad); //Triggers Async save
             Player player = Bukkit.getPlayer(pad.ownerUUID());
             if (player != null) {
-                player.sendMessage(ChatColor.RED + plugin.Lang().delete_approve() + " " + ChatColor.WHITE + pad.getName());
+                plugin.errorMessage(player, plugin.Lang().delete_approve() + " " + ChatColor.WHITE + pad.getName());
             }
             deleteBlocks(pad.getLocation());
         }
@@ -320,8 +319,8 @@ public class TravelPadManager {
 
     public Pad getPadNear(Location location) {
         //Quick cutaway in case by some miracle we are at the 'right' location. Odds are slim
-        Pad quickPad  = getPadAt(location);
-        if(quickPad!=null){
+        Pad quickPad = getPadAt(location);
+        if (quickPad != null) {
             return quickPad;
         }
         List<Pad> list = getPads();
@@ -435,10 +434,10 @@ public class TravelPadManager {
         Block block1 = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
         Block block2 = world.getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
         if (!(block1.getType() == Material.AIR || block2.getType() == Material.AIR)) {
-            player.sendMessage(ChatColor.RED + "Suffocated");
+            plugin.errorMessage(player, "Suffocated");
             return false;//not safe, suffocated
         } else if (block.getRelative(BlockFace.DOWN).getType() != Material.OBSIDIAN) {
-            player.sendMessage(ChatColor.RED + "Not a valid tpad?" + block.getRelative(BlockFace.DOWN).getType().toString());
+            plugin.errorMessage(player, "Not a valid tpad?" + block.getRelative(BlockFace.DOWN).getType().toString());
             player.sendMessage("X:" + block.getX() + " Y:" + block.getY() + " Z:" + block.getZ());
             return false;
         }
