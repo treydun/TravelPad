@@ -41,6 +41,8 @@ public class LangManager {
         return lang.getString("create_deny_max");
     }
 
+    public String create_deny_money() { return lang.getString("create_deny_money"); }
+
     public String identify_found_message() {
         return lang.getString("identify_found_message");
     }

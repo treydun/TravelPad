@@ -3,19 +3,13 @@ package net.h31ix.travelpad.api;
 import net.h31ix.travelpad.Travelpad;
 import net.h31ix.travelpad.event.TravelPadExpireEvent;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import net.h31ix.travelpad.event.TravelPadCreateEvent;
 import net.h31ix.travelpad.event.TravelPadDeleteEvent;
 import net.h31ix.travelpad.event.TravelPadNameEvent;
 import net.md_5.bungee.api.ChatColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -24,11 +18,13 @@ import org.bukkit.inventory.ItemStack;
 public class TravelPadManager {
 
     final private Travelpad plugin;
+
     private HashMap<String, Pad> padsByLocation = new HashMap<>();
     private HashMap<String, Pad> padsByName = new HashMap<>();
     private HashMap<UUID, List<Pad>> padsByUUID = new HashMap<>();
 
     private List<UnnamedPad> unvList = new ArrayList<>();
+    private List<Pad> publicPads = new ArrayList<>();
 
 
     public TravelPadManager(Travelpad plugin) {
@@ -53,6 +49,17 @@ public class TravelPadManager {
                 Pad pad = Pad.deserialize(serializedPad);
                 //Pads should just be cached here, no need to trigger a save...
                 if (pad != null) {
+                    if(pad.ownerUUID().equals(Travelpad.ADMIN_UUID)){
+                        pad.setOwnerName("Admin");
+                    } else {
+                        OfflinePlayer oPlayer = Bukkit.getOfflinePlayer(pad.ownerUUID());
+                        if(oPlayer!=null){
+                            pad.setOwnerName(oPlayer.getName());
+                        }
+                    }
+                    if(plugin.Config().hasMeta(pad.getName())) {
+                        pad.importMeta(plugin.Config().getPadMeta(pad.getName()));
+                    }
                     cachePad(pad);
                 } else {
                     plugin.getLogger().warning("Unable to load pad " + serializedPad + " is the world loaded?");
@@ -60,6 +67,8 @@ public class TravelPadManager {
             }
         }
         //Attempt to load any unnamed pads from a server restart or crash
+        //TODO: This really needs to trigger some sort of pad delete task on these...
+        //What good is remembering its unnamed if the task to cancel its creation is missing?
         List<String> serializedUnnamedPads = plugin.Config().getUnvPads();
         if (serializedUnnamedPads != null && !serializedUnnamedPads.isEmpty()) {
             for (String serializedUnnamedPad : serializedUnnamedPads) {
@@ -75,13 +84,22 @@ public class TravelPadManager {
     }
 
     public void cachePad(Pad pad) {
-        //TODO: Continue
-        //plugin.Config().getPadMeta(pad.getName());
+        //Map<String, Object> padMeta = plugin.Config().getPadMeta(pad.getName());
+        //if(padMeta!=null){
+        //    Travelpad.log("Found meta, importing");
+            //pad.importMeta(padMeta);
+        //}
+
+        pad.setOwnerName(plugin.getPlayerName(pad.ownerUUID()));
+
         padsByLocation.put(locToString(pad.getLocation()), pad);
         padsByName.put(pad.getName().toLowerCase(), pad);
         List<Pad> pads = padsByUUID.getOrDefault(pad.ownerUUID(), new ArrayList<>());
         pads.add(pad);
         padsByUUID.put(pad.ownerUUID(), pads);
+        if(pad.isPublic()){
+            publicPads.add(pad);
+        }
     }
 
     public void addPad(Pad pad) {
@@ -191,6 +209,20 @@ public class TravelPadManager {
             plugin.message(owner,plugin.Lang().create_approve_1());
             plugin.message(owner,plugin.Lang().create_approve_2());
         }
+    }
+
+    public void setMeta(Pad pad, boolean publicPad){
+        pad.setPublic(publicPad);
+        plugin.Meta().saveMeta(pad.getName());
+    }
+
+    public void setMeta(Pad pad, String description) {
+        pad.setDescription(description);
+        plugin.Meta().saveMeta(pad.getName());
+    }
+
+    public void setMeta(Pad pad, int direction){
+
     }
 
     public boolean isStillUnnamed(UnnamedPad pad) {
@@ -412,6 +444,7 @@ public class TravelPadManager {
      */
     public List<Pad> getPads() {
         Travelpad.log("GETALLPADS BEING CALLED...");
+        //Could use padsByName.values() as well but its a collection
         List<Pad> allPads = new ArrayList<>();
         for (String key : padsByName.keySet()) {
             allPads.add(padsByName.get(key));
@@ -443,5 +476,4 @@ public class TravelPadManager {
         }
         return true; //assume passed
     }
-
 }

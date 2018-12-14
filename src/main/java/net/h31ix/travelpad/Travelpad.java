@@ -3,6 +3,7 @@ package net.h31ix.travelpad;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -10,27 +11,32 @@ import net.h31ix.travelpad.api.Configuration;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.api.TravelPadManager;
 import net.h31ix.travelpad.api.UnnamedPad;
+import net.h31ix.travelpad.tasks.SyncMeta;
 import net.md_5.bungee.api.ChatColor;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 public class Travelpad extends JavaPlugin {
     private Configuration config;
     private TravelPadManager manager;
     private LangManager l;
+    private SyncMeta syncMeta;
+    private BukkitTask syncMetaTask;
 
     private Economy economy;
 
     public static final String PLUGIN_PREFIX_COLOR = ChatColor.DARK_GRAY + "[" + ChatColor.BLUE + "TravelPads" + ChatColor.DARK_GRAY + "] " + ChatColor.GRAY;
-
+    public static final UUID ADMIN_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     public static final String DELIMINATOR = "/";
 
     @Override
@@ -63,6 +69,8 @@ public class Travelpad extends JavaPlugin {
         pm.registerEvents(new TravelPadBlockListener(this), this);
         pm.registerEvents(new TravelPadListener(this), this);
         getCommand("travelpad").setExecutor(new TravelPadCommandExecutor(this));
+        syncMeta = new SyncMeta(this);
+        syncMetaTask = getServer().getScheduler().runTaskAsynchronously(this,syncMeta);
     }
 
     public boolean namePad(Player player, String name) {
@@ -119,7 +127,7 @@ public class Travelpad extends JavaPlugin {
         loc.setY(loc.getY() + 1);
         if (!Manager().isSafe(loc, player)) {
             //player.sendMessage("X:"+loc.getX()+" Y:"+loc.getY()+" Z:"+loc.getZ());
-            //player.sendMessage(ChatColor.RED+l.travel_unsafe());
+            player.sendMessage(ChatColor.RED+l.travel_unsafe());
             tp = false;
         }
         if (config.requireItem) {
@@ -242,7 +250,7 @@ public class Travelpad extends JavaPlugin {
             }
             if (config.economyEnabled) {
                 if (!(economy.getBalance(player) >= config.createAmount)) {
-                    errorMessage(player,"Not enough money!");
+                    errorMessage(player,l.create_deny_money());
                     return false;
                 }
             }
@@ -276,8 +284,16 @@ public class Travelpad extends JavaPlugin {
         return config;
 	}
 
+	public SyncMeta Meta(){
+        return syncMeta;
+    }
+
     public static void log(String str) {
         Bukkit.getLogger().info(PLUGIN_PREFIX_COLOR + " " + str);
+    }
+
+    public static void error(String str){
+        Bukkit.getLogger().severe(PLUGIN_PREFIX_COLOR+" "+str);
     }
 
     public static String formatLocation(Location loc) {
@@ -297,6 +313,15 @@ public class Travelpad extends JavaPlugin {
 
     public void message(CommandSender sender, String message){
         sender.sendMessage(PLUGIN_PREFIX_COLOR+ChatColor.GREEN+message);
+    }
+
+    public String getPlayerName(UUID playersUUID) {
+        OfflinePlayer oPlayer = getServer().getOfflinePlayer(playersUUID);
+        if(oPlayer!=null){
+            return oPlayer.getName();
+        }
+        //TODO: Fallback to unity next (allow it to MjAPI?)
+        return null;
     }
 }
 

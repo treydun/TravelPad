@@ -10,7 +10,7 @@ import java.util.logging.Logger;
 
 import net.h31ix.travelpad.Travelpad;
 import org.bukkit.Material;
-import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
@@ -18,11 +18,11 @@ public class Configuration {
 
     private Travelpad plugin;
     private File configFile = new File("plugins/TravelPad/config.yml");
-    private FileConfiguration config;
+    private YamlConfiguration config;
     private File padsFile = new File("plugins/TravelPad/pads.yml");
-    private FileConfiguration padsYaml;
+    private YamlConfiguration padsYaml;
     private File padsMetaFile = new File("plugins/TravelPad/padmeta.yml");
-    private FileConfiguration padsMeta;
+    private YamlConfiguration padsMeta;
 
     public boolean requireItem = false;
     public boolean takeItem = false;
@@ -57,16 +57,16 @@ public class Configuration {
         importConfigValues();
         Travelpad.log("Loading pads from disk");
         loadPadsFromDisk();
-        if(padsYaml.getStringList("pads").isEmpty()){
+        if (padsYaml.getStringList("pads").isEmpty()) {
             File legacyPadsFile = new File("plugins/TravelPad/pads2.yml");
-            if(legacyPadsFile.exists()){
+            if (legacyPadsFile.exists()) {
                 Travelpad.log("Legacy pad file detected, upgrading data");
-                FileConfiguration legacyPads = YamlConfiguration.loadConfiguration(legacyPadsFile);
-                if(!legacyPads.getStringList("pads").isEmpty()) {
-                    for(String legacyPadString:legacyPads.getStringList("pads")) {
+                YamlConfiguration legacyPads = YamlConfiguration.loadConfiguration(legacyPadsFile);
+                if (!legacyPads.getStringList("pads").isEmpty()) {
+                    for (String legacyPadString : legacyPads.getStringList("pads")) {
                         //addPad(Pad.serialize(Pad.deserialize(legacyPadString)));
                         Pad pad = Pad.deserialize(legacyPadString);
-                        if(pad!=null){
+                        if (pad != null) {
                             addPad(Pad.serialize(pad));
                         } else {
                             Travelpad.log("ERROR PARSING PAD DATA, FAILING IMPORT");
@@ -109,7 +109,7 @@ public class Configuration {
     public void addUnnamedPad(String pad, boolean save) {
         List<String> padsList = getUnvPads();
         padsList.add(pad);
-        padsYaml.set("unv",padsList);
+        padsYaml.set("unv", padsList);
         if (save) {
             saveAsync();
         }
@@ -150,22 +150,28 @@ public class Configuration {
         });
     }
 
-    public Set<String> getPublicPads() {
+
+    public Set<String> getPadsWithMeta() {
         return padsMeta.getKeys(false);
     }
 
+    public boolean hasMeta(String padName){
+        return padsMeta.contains(padName);
+    }
+
     public Map<String, Object> getPadMeta(String padName) {
-        return padsMeta.getConfigurationSection(padName).getValues(false);
+        ConfigurationSection section = padsMeta.getConfigurationSection(padName);
+        if (section != null)
+            return section.getValues(false);
+        else
+            return null;
     }
 
     public void addPadMeta(String padName, Map<String, Object> meta) {
         padsMeta.set(padName, meta);
-        try {
-            padsMeta.save(padsMetaFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        //saveMeta();
     }
+
 
     public int getAllowedPads(Player player) {
         if (player.hasPermission("travelpad.infinite")) {
@@ -190,47 +196,34 @@ public class Configuration {
     }
 
     private void importConfigValues() {
-        if (config.getString("Portal Options.Allow any player to break") == null) {
-            config.set("Portal Options.Allow any player to break", false);
-            try {
-                config.save(configFile);
-            } catch (IOException ex) {
-                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        if (config.getString("Portal Options.Emit water on creation") == null) {
-            config.set("Portal Options.Emit water on creation", true);
-            try {
-                config.save(configFile);
-            } catch (IOException ex) {
-                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        if (config.getString("Portal Options.Center block name") == null) {
-            config.set("Portal Options.Center block name", "OBSIDIAN");
-            try {
-                config.save(configFile);
-            } catch (IOException ex) {
-                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        if (config.getString("Portal Options.Outline block name") == null) {
-            config.set("Portal Options.Outline block name", "BRICKS");
-            try {
-                config.save(configFile);
-            } catch (IOException ex) {
-                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        center = Material.valueOf(config.getString("Portal Options.Center block name"));
-        outline = Material.valueOf(config.getString("Portal Options.Outline block name"));
-        anyBreak = config.getBoolean("Portal Options.Allow any player to break");
-        emitWater = config.getBoolean("Portal Options.Emit water on creation");
+        boolean save = false;
         requireItem = config.getBoolean("Teleportation Options.Require item");
         if (requireItem) {
             takeItem = config.getBoolean("Teleportation Options.Take item");
             itemType = Material.valueOf(config.getString("Teleportation Options.Item name"));
         }
+
+        if (config.getString("Portal Options.Allow any player to break") == null) {
+            config.set("Portal Options.Allow any player to break", false);
+            save = true;
+        }
+        if (config.getString("Portal Options.Emit water on creation") == null) {
+            config.set("Portal Options.Emit water on creation", true);
+            save = true;
+        }
+        if (config.getString("Portal Options.Center block name") == null) {
+            config.set("Portal Options.Center block name", "OBSIDIAN");
+            save = true;
+        }
+        if (config.getString("Portal Options.Outline block name") == null) {
+            config.set("Portal Options.Outline block name", "BRICKS");
+            save = true;
+        }
+        center = Material.valueOf(config.getString("Portal Options.Center block name"));
+        outline = Material.valueOf(config.getString("Portal Options.Outline block name"));
+        anyBreak = config.getBoolean("Portal Options.Allow any player to break");
+        emitWater = config.getBoolean("Portal Options.Emit water on creation");
+
         chargeCreate = config.getBoolean("Portal Options.Charge on creation");
         refundDelete = config.getBoolean("Portal Options.Refund on deletion");
         chargeTeleport = config.getBoolean("Teleportation Options.Charge player");
@@ -246,6 +239,14 @@ public class Configuration {
         if (chargeTeleport) {
             teleportAmount = config.getDouble("Teleportation Options.Charge amount");
         }
+        if (save) {
+            try {
+                config.save(configFile);
+            } catch (IOException ex) {
+                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
     }
 
     private void loadPadsFromDisk() {
@@ -263,6 +264,15 @@ public class Configuration {
             Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
         }
         Travelpad.log("Pads List saved to disk.");
+    }
+
+    public void saveMeta(){
+        try {
+            padsMeta.save(padsMetaFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Travelpad.log("Pad meta saved to disk");
     }
 
     public boolean emitsWater() {

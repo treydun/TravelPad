@@ -7,6 +7,8 @@ import org.bukkit.Location;
 import net.h31ix.travelpad.Travelpad;
 import org.bukkit.World;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -31,6 +33,7 @@ public class Pad {
     private UUID ownerUUID;
 
     private String ownerName = "";
+
     private boolean publicPad = false;
     private String description = "";
     private long lastUsed = 0L;
@@ -60,6 +63,10 @@ public class Pad {
      */
     public Location getTeleportLocation() {
         return new Location(location.getWorld(), location.getX(), location.getY() + 2, location.getZ());
+    }
+
+    public void setOwnerUUID(UUID ownerUUID){
+        this.ownerUUID=ownerUUID;
     }
 
     /**
@@ -96,6 +103,76 @@ public class Pad {
      */
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setPublic(boolean makePublic){
+        publicPad=makePublic;
+    }
+
+    public boolean isPublic(){
+        return publicPad;
+    }
+
+    public void setDescription(String description){
+        this.description=description;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDirection(int direction){
+        //direction shouldnt be stored in pad? should be stored in location? ehh maybe not? idk maybe both
+        this.direction=direction;
+    }
+
+    public int getDirection(){
+        return direction;
+    }
+
+    public boolean hasMeta() {
+        return publicPad || !description.isEmpty() || lastUsed!=0L || prepaidTeleports!=0 || direction!=0;
+    }
+
+    public void importMeta(Map<String, Object> meta){
+        if(!meta.isEmpty()){
+            for(String key:meta.keySet()){
+                switch(key){
+                    case "description":
+                        description=(String) meta.get(description);
+                        break;
+                    case "lastused":
+                        lastUsed=Long.parseLong((String) meta.get("lastused"));
+                        break;
+                    case "prepaidteleports":
+                        prepaidTeleports=Integer.parseInt((String) meta.get("prepaidteleports"));
+                    case "direction":
+                        direction = Integer.parseInt((String) meta.get("direction"));
+                    case "public":
+                        publicPad=true;
+                }
+            }
+        }
+    }
+
+    public Map<String, Object> getMeta(){
+        Map<String, Object> meta = new HashMap<>();
+        if(publicPad){
+            meta.put("public",true);
+        }
+        if(!description.isEmpty()){
+            meta.put("description",description);
+        }
+        if(lastUsed!=0L){
+            meta.put("lastused", lastUsed);
+        }
+        if(prepaidTeleports!=0){
+            meta.put("prepaidteleports",prepaidTeleports);
+        }
+        if(direction!=0){
+            meta.put("direction",direction);
+        }
+        return meta;
     }
 
     @Override

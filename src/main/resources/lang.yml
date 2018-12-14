@@ -7,6 +7,7 @@ travel_message: The wind rushes through your hair...
 charge_message: You have been charged 
 refund_message: You have been refunded 
 
+create_deny_money: You can not afford that!
 create_deny_waiting: You already have a pad waiting to be named!
 create_deny_max: You have already reached your pad limit!
 create_approve_1: You have just created a TravelPad!
