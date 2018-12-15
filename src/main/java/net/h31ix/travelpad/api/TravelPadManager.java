@@ -307,16 +307,8 @@ public class TravelPadManager {
      *
      * @param name Name to be checked
      */
-    public boolean nameIsValid(String name) {
+    public boolean padExists(String name) {
         return padsByName.containsKey(name.toLowerCase());
-        /*
-        for (String padName : padsByName.keySet()) {
-            if (padName.equalsIgnoreCase(name)) {
-                return false;
-            }
-        }
-        return true;
-        */
     }
 
     /**

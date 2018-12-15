@@ -212,7 +212,7 @@ public class TravelPadCommandExecutor implements CommandExecutor {
             if (args[1].contains("/")) {
                 plugin.errorMessage(player, "Please do not use '/' in the TravelPad name!");
             } else {
-                if (plugin.Manager().nameIsValid(args[1])) {
+                if (plugin.Manager().padExists(args[1])) {
                     String name = args[1];
                     boolean set = plugin.namePad(player, name);
                     if (set) {
