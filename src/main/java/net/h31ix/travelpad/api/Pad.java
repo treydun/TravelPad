@@ -122,7 +122,40 @@ public class Pad {
     }
 
     public void setDirection(int direction){
-        //direction shouldnt be stored in pad? should be stored in location? ehh maybe not? idk maybe both
+        //TODO: On meta import this method would need to be invoked to properly update the location
+        //0 = Default Rotation
+        switch (direction){
+            case 0:
+                this.location=new Location(this.location.getWorld(),
+                        this.location.getBlockX(),
+                        this.location.getBlockY(),
+                        this.location.getBlockZ());
+                break;
+            case 1:
+                this.location=new Location(this.location.getWorld(),
+                        this.location.getBlockX(),
+                        this.location.getBlockY(),
+                        this.location.getBlockZ(),
+                        0F,
+                        90F);
+                break;
+            case 2:
+                this.location=new Location(this.location.getWorld(),
+                        this.location.getBlockX(),
+                        this.location.getBlockY(),
+                        this.location.getBlockZ(),
+                        0F,
+                        180F);
+                break;
+            case 3:
+                this.location=new Location(this.location.getWorld(),
+                        this.location.getBlockX(),
+                        this.location.getBlockY(),
+                        this.location.getBlockZ(),
+                        0F,
+                        270F);
+                break;
+        }
         this.direction=direction;
     }
 

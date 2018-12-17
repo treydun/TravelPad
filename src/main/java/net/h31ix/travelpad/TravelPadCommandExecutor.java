@@ -235,7 +235,11 @@ public class TravelPadCommandExecutor implements CommandExecutor {
             Player player = (Player) sender;
             if (args.length == 2) {
                 if (player.hasPermission("travelpad.teleport") || player.hasPermission("travelpad.tp")) {
-                    Pad originPad = plugin.Manager().getPadNear(player.getLocation());
+                    Pad originPad = null;
+                    //No charge
+                    if(!player.hasPermission("travelpad.tpanywhere")) {
+                        originPad = plugin.Manager().getPadNear(player.getLocation());
+                    }
                     if (originPad != null || player.hasPermission("travelpad.tpanywhere")) {
                         Pad destinationPad = plugin.Manager().getPad(args[1]);
                         if (destinationPad != null) {
