@@ -43,6 +43,10 @@ public class LangManager {
 
     public String create_deny_money() { return lang.getString("create_deny_money"); }
 
+    public String list_no_pads() { return lang.getString("list_no_pads"); }
+
+    public String list_no_player() { return lang.getString("list_no_player"); }
+
     public String identify_found_message() {
         return lang.getString("identify_found_message");
     }

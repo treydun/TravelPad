@@ -16,23 +16,13 @@ import java.util.UUID;
  * <p>
  * Defines a new TravelPad on the map, this is only used after a pad has a name.
  */
-
-//Their data will be stored in the config data structure only.
-//New pads will be added to that data structure and a write will be performed asyncronously
-//deleted pads will be removed from that data structure.
-//Its just a list, of strings... easy to add or remove...
-
-//Thoughts on organic sorting
-//How many times has it been hit recently
-//how many hits per week? reset it each sort? true organic popularity
-
 public class Pad {
 
     private Location location;
     private String name;
     private UUID ownerUUID;
 
-    private String ownerName = "";
+    private transient String ownerName = "";
 
     private boolean publicPad = false;
     private String description = "";
@@ -180,6 +170,7 @@ public class Pad {
                     case "prepaidteleports":
                         prepaidTeleports=Integer.parseInt((String) meta.get("prepaidteleports"));
                     case "direction":
+                        //TODO: Either call method to set new Location or handle Location in manager
                         direction = Integer.parseInt((String) meta.get("direction"));
                     case "public":
                         publicPad=true;

@@ -1,7 +1,6 @@
 package net.h31ix.travelpad;
 
 import com.buildatnight.legacyutils.Format;
-import com.buildatnight.unity.Unity;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.event.TravelPadTeleportEvent;
 import net.md_5.bungee.api.ChatColor;
@@ -10,18 +9,16 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
+import java.util.UUID;
 
 public class TravelPadCommandExecutor implements CommandExecutor {
     private Travelpad plugin;
@@ -177,26 +174,57 @@ public class TravelPadCommandExecutor implements CommandExecutor {
             }
             return true;
         } else if (args.length == 2) {
-            if (sender.hasPermission("travelpad.list.others")) {
-                //TODO: UGH FIX THIS BROKEN OLD METHOD
-                OfflinePlayer pl = Bukkit.getPlayer(args[1]);
-                if (pl == null) {
-                    pl = Bukkit.getOfflinePlayer(Unity.getUnityHandle().getCache().fetchUUID(args[1]));
-                }
-
-                List<Pad> ppads = plugin.Manager().getPadsFrom(pl.getUniqueId());
-                plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
-                for (Pad p : ppads) {
-                    TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
-                    padName.setColor(ChatColor.GREEN);
-                    padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
-                    padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
-                    if (sender instanceof Player) {
-                        //TODO: Recasting each time in a loop is dumbie
-                        ((Player) sender).spigot().sendMessage(padName);
-                    } else {
-                        sender.sendMessage(padName.toLegacyText());
+            if (args[1].equalsIgnoreCase("all") && sender.hasPermission("travelpad.list.all")) {
+                List<Pad> pads = plugin.Manager().getPads();
+                if (pads != null && !pads.isEmpty()) {
+                    for (Pad p : pads) {
+                        sender.sendMessage(p.getName() + ":" + Pad.serialize(p));
                     }
+                    return true;
+                } else {
+                    sender.sendMessage("Unable to find any pads");
+                    return true;
+                }
+            } else if (args[1].equalsIgnoreCase("Admin") && sender.hasPermission("travelpad.list.admin")) {
+                List<Pad> pads = plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID);
+                if (pads != null && !pads.isEmpty()) {
+                    plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
+                    for (Pad p : pads) {
+                        TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
+                        padName.setColor(ChatColor.GREEN);
+                        padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
+                        padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
+                        if (sender instanceof Player) {
+                            //TODO: Recasting each time in a loop is dumbie
+                            ((Player) sender).spigot().sendMessage(padName);
+                        } else {
+                            sender.sendMessage(padName.toLegacyText());
+                        }
+                    }
+                }
+            } else if (sender.hasPermission("travelpad.list.others")) {
+                UUID ownerID = plugin.getPlayerUUIDbyName(args[1]);
+                if (ownerID != null) {
+                    List<Pad> ppads = plugin.Manager().getPadsFrom(ownerID);
+                    if (ppads != null && !ppads.isEmpty()) {
+                        plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
+                        for (Pad p : ppads) {
+                            TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
+                            padName.setColor(ChatColor.GREEN);
+                            padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
+                            padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
+                            if (sender instanceof Player) {
+                                //TODO: Recasting each time in a loop is dumbie
+                                ((Player) sender).spigot().sendMessage(padName);
+                            } else {
+                                sender.sendMessage(padName.toLegacyText());
+                            }
+                        }
+                    } else {
+                        plugin.errorMessage(sender, plugin.Lang().list_no_pads() + args[1]);
+                    }
+                } else {
+                    plugin.errorMessage(sender, plugin.Lang().list_no_player() + args[1]);
                 }
             } else {
                 plugin.errorMessage(sender, plugin.Lang().command_deny_permission());
@@ -237,8 +265,8 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                 if (player.hasPermission("travelpad.teleport") || player.hasPermission("travelpad.tp")) {
                     Pad originPad = null;
                     //No charge
-                    if(!player.hasPermission("travelpad.tpanywhere")) {
-                        originPad = plugin.Manager().getPadNear(player.getLocation());
+                    if (!player.hasPermission("travelpad.tpanywhere")) {
+                        originPad = plugin.Manager().getPadNear(player.getLocation()); //EXPENSIVE OPERATION
                     }
                     if (originPad != null || player.hasPermission("travelpad.tpanywhere")) {
                         Pad destinationPad = plugin.Manager().getPad(args[1]);
@@ -279,28 +307,33 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                 int prepaid = Integer.parseInt(args[2]);
                 if (sender instanceof Player) {
                     Player player = (Player) sender;
-                    if (pad.ownerUUID().equals(player.getUniqueId()) || player.hasPermission("travelpad.admin")) {
+                    if (pad.ownerUUID().equals(player.getUniqueId()) || player.hasPermission("travelpad.admin") || player.hasPermission("travelpad.prepay.others")) {
+                        //TODO: Should we include some sort of refund/undo system for this?
                         if (player.getInventory().contains(Material.ENDER_EYE, prepaid)) {
                             int stacks = prepaid / (new ItemStack(Material.ENDER_EYE).getMaxStackSize());
                             int remainder = prepaid % (new ItemStack(Material.ENDER_EYE).getMaxStackSize());
-                            while (stacks>0){
-                                player.getInventory().remove(new ItemStack(Material.ENDER_EYE,64));
+                            while (stacks > 0) {
+                                player.getInventory().remove(new ItemStack(Material.ENDER_EYE, 64));
                                 stacks--;
                             }
-                            player.getInventory().remove(new ItemStack(Material.ENDER_EYE,remainder));
+                            player.getInventory().remove(new ItemStack(Material.ENDER_EYE, remainder));
+                            //TODO: charge success, update pad prepaids to reflect new balance (make sure to add to, not replace)
+                        } else if (plugin.charge(player, prepaid * plugin.Config().teleportAmount)) {
+                            //TODO: Charge success, update pad prepaids to reflect new balance (make sure to add to, not replace)
                         } else {
-                            //int amountToitemPrepay = player.getInventory().amountOfEnderEye()
-                            //remainingBalance = prepaid - amountToItemPrepay;
+                            plugin.errorMessage(player, plugin.Lang().create_deny_money());
                         }
-                        //if(remainingBalance>0){
-                            //assume partial payment, figure $$$ on remainder,
-                        //} OR {
-                            //assume full payment intended for money? what to set for paidInfull? -1? still meets
-                        //}
+                    } else {
+                        sender.sendMessage("No permission Place Holder");
                     }
+                } else {
+                    plugin.errorMessage(sender, plugin.Lang().command_deny_console());
                 }
+            } else {
+                plugin.errorMessage(sender, "NO_PAD_BY_THAT_NAME");
             }
         }
+        //Invalid number of arguments error message
         return false;
     }
 
@@ -322,6 +355,7 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                                 pad.setPublic(false);
                                 return true;
                             case "direction":
+                                //TODO: Finish orientation command
                                 if (args[3].toLowerCase().equals("n")) {
 
                                 } else if (args[3].toLowerCase().equals("s")) {

@@ -17,6 +17,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 public class TravelPadBlockListener implements Listener {
 
@@ -28,7 +29,7 @@ public class TravelPadBlockListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getHand().equals(EquipmentSlot.HAND)) {
             Block block = event.getClickedBlock();
             if (block.getType() == plugin.Config().center) {
                 if (block.getRelative(BlockFace.EAST).getType() == plugin.Config().outline
@@ -44,7 +45,7 @@ public class TravelPadBlockListener implements Listener {
                         event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + "There is already a Travelpad at this location!");
                     }
                 }
-            } else if (block.getType() == Material.getMaterial("SIGN_POST") || block.getType() == Material.getMaterial("WALL_SIGN")) {
+            } else if (event.getHand().equals(EquipmentSlot.HAND) && (block.getType() == Material.getMaterial("SIGN_POST") || block.getType() == Material.getMaterial("WALL_SIGN"))) {
                 if (!event.isCancelled()) {
                     {
                         BlockState bState = block.getState();

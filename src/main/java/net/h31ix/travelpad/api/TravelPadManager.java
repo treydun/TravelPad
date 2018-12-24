@@ -49,15 +49,8 @@ public class TravelPadManager {
                 Pad pad = Pad.deserialize(serializedPad);
                 //Pads should just be cached here, no need to trigger a save...
                 if (pad != null) {
-                    if(pad.ownerUUID().equals(Travelpad.ADMIN_UUID)){
-                        pad.setOwnerName("Admin");
-                    } else {
-                        OfflinePlayer oPlayer = Bukkit.getOfflinePlayer(pad.ownerUUID());
-                        if(oPlayer!=null){
-                            pad.setOwnerName(oPlayer.getName());
-                        }
-                    }
-                    if(plugin.Config().hasMeta(pad.getName())) {
+                    setOwnerName(pad);
+                    if (plugin.Config().hasMeta(pad.getName())) {
                         pad.importMeta(plugin.Config().getPadMeta(pad.getName()));
                     }
                     cachePad(pad);
@@ -84,20 +77,18 @@ public class TravelPadManager {
     }
 
     public void cachePad(Pad pad) {
-        //Map<String, Object> padMeta = plugin.Config().getPadMeta(pad.getName());
-        //if(padMeta!=null){
-        //    Travelpad.log("Found meta, importing");
-            //pad.importMeta(padMeta);
-        //}
-
-        pad.setOwnerName(plugin.getPlayerName(pad.ownerUUID()));
+        Map<String, Object> padMeta = plugin.Config().getPadMeta(pad.getName());
+        if (padMeta != null) {
+            Travelpad.log("Found meta for " + pad.getName() + ", importing");
+            pad.importMeta(padMeta);
+        }
 
         padsByLocation.put(locToString(pad.getLocation()), pad);
         padsByName.put(pad.getName().toLowerCase(), pad);
         List<Pad> pads = padsByUUID.getOrDefault(pad.ownerUUID(), new ArrayList<>());
         pads.add(pad);
         padsByUUID.put(pad.ownerUUID(), pads);
-        if(pad.isPublic()){
+        if (pad.isPublic()) {
             publicPads.add(pad);
         }
     }
@@ -117,7 +108,7 @@ public class TravelPadManager {
     }
 
     /**
-     * Drops Pad from cache maps
+     * Drops Pad from cache maps, does not remove it from Config() or disk
      *
      * @param pad pad to flush
      */
@@ -135,6 +126,7 @@ public class TravelPadManager {
 
     /**
      * Removes pad totally from datastore and memory, runs async save after
+     * which then clears it from disk data store
      *
      * @param pad pad to remove
      */
@@ -143,10 +135,20 @@ public class TravelPadManager {
         flushPad(pad);
     }
 
+    /**
+     * Removes Unnamed pad from unnamed pad cache, does not remove it from Config() or disk
+     *
+     * @param pad unnamed pad to remove
+     */
     public void flushPad(UnnamedPad pad) {
         unvList.remove(pad);
     }
 
+    /**
+     * Removes an Unnamed pad from the cache as well as Config() and disk data store
+     *
+     * @param pad
+     */
     public void removePad(UnnamedPad pad) {
         plugin.Config().removeUnnamedPad(pad.serialize(), true);
         flushPad(pad);
@@ -159,12 +161,11 @@ public class TravelPadManager {
     /**
      * Create a new, unnamed pad
      *
-     * @param location Location of the center of the pad
-     * @param player   Player who should own this pad
+     * @param location  Location of the center of the pad
+     * @param ownerUUID UUID who should own this pad
      */
-    public void createPad(final Location location, Player player) {
-        //update(); No need to repropogate data every creation
-        final UnnamedPad pad = new UnnamedPad(location, player.getUniqueId());
+    public void createPad(final Location location, final UUID ownerUUID) {
+        final UnnamedPad pad = new UnnamedPad(location, ownerUUID);
 
         TravelPadCreateEvent e = new TravelPadCreateEvent(pad);
         plugin.getServer().getPluginManager().callEvent(e);
@@ -174,7 +175,6 @@ public class TravelPadManager {
             addPad(pad); //Triggers async save
 
             //Schedule expiration
-            final Player owner = Bukkit.getPlayer(pad.OwnerUUID());
             plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
                 public void run() {
                     if (isStillUnnamed(pad)) {
@@ -183,8 +183,13 @@ public class TravelPadManager {
                         if (!e.isCancelled()) {
                             //Remove expired pad from unnamed list and datastore
                             removePad(pad);//Triggers async save
-                            //Send owner message that they didnt name fast enough
-                            plugin.errorMessage(owner,plugin.Lang().pad_expire());
+                            if (!ownerUUID.equals(Travelpad.ADMIN_UUID)) {
+                                final Player owner = Bukkit.getPlayer(pad.OwnerUUID());
+                                if (owner != null && owner.isOnline()) {
+                                    //Send owner message that they didnt name fast enough
+                                    plugin.errorMessage(owner, plugin.Lang().pad_expire());
+                                }
+                            }
                             //Cleanup pad structure
                             deleteBlocks(location);
                         }
@@ -206,14 +211,26 @@ public class TravelPadManager {
                     }
                 }, 5L);
             }
-            plugin.message(owner,plugin.Lang().create_approve_1());
-            plugin.message(owner,plugin.Lang().create_approve_2());
+
+
         }
     }
 
-    public void setMeta(Pad pad, boolean publicPad){
-        pad.setPublic(publicPad);
+    public void setOwnerName(Pad pad) {
+        if (!pad.ownerUUID().equals(Travelpad.ADMIN_UUID)) {
+            pad.setOwnerName(plugin.getPlayerName(pad.ownerUUID()));
+        } else {
+            pad.setOwnerName("Admin");
+        }
+    }
+
+    public void setPublic(Pad pad) {
+        pad.setPublic(true);
         plugin.Meta().saveMeta(pad.getName());
+    }
+
+    public void setPrivate(Pad pad) {
+        pad.setPublic(false);
     }
 
     public void setMeta(Pad pad, String description) {
@@ -221,7 +238,7 @@ public class TravelPadManager {
         plugin.Meta().saveMeta(pad.getName());
     }
 
-    public void setMeta(Pad pad, int direction){
+    public void setMeta(Pad pad, int direction) {
 
     }
 
@@ -318,17 +335,7 @@ public class TravelPadManager {
      * @return Pad if found, null if no pad by that name
      */
     public Pad getPad(String name) {
-        Pad pad = padsByName.get(name.toLowerCase());
-        /* No longer needed, switched to lowercased based key
-        //Failover in the event of typos, this method is possibly called with an arg directly from a command, user input
-        if (pad == null) {
-            for (String padName : padsByName.keySet()) {
-                if (padName.equalsIgnoreCase(name)) {
-                    pad = padsByName.get(padName);
-                }
-            }
-        }*/
-        return pad;
+        return padsByName.get(name.toLowerCase());
     }
 
     /**
@@ -437,6 +444,7 @@ public class TravelPadManager {
     public List<Pad> getPads() {
         Travelpad.log("GETALLPADS BEING CALLED...");
         //Could use padsByName.values() as well but its a collection
+        //This really needs to be switched to a primitive array...
         List<Pad> allPads = new ArrayList<>();
         for (String key : padsByName.keySet()) {
             allPads.add(padsByName.get(key));

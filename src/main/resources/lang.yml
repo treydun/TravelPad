@@ -13,6 +13,9 @@ create_deny_max: You have already reached your pad limit!
 create_approve_1: You have just created a TravelPad!
 create_approve_2: Please type /travelpad name [name] to name this pad.
 
+list_no_player: Unable to find the player
+list_no_pads: Unable to find any pads for
+
 identify_found_message: You are at the pad named 
 identify_notfound_message: You are not standing on a pad!
 

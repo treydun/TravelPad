@@ -10,13 +10,16 @@ public class SyncMeta implements Runnable {
 
     public Travelpad plugin;
 
-    public Set<String> dirtyPads=new HashSet<>();
+    private Set<String> dirtyPads=new HashSet<>();
 
     private boolean enabled = true;
 
     public SyncMeta(Travelpad plugin) {
         this.plugin = plugin;
     }
+
+    //Thoughts... If you spin off a main thread task to swap the data from pad to config store you wont need to worry about
+    //concurrent modifications of it... only save needs to even be async... and you could lock
 
     @Override
     public void run() {

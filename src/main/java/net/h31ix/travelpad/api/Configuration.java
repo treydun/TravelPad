@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,7 +13,6 @@ import net.h31ix.travelpad.Travelpad;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 
 public class Configuration {
 
@@ -23,6 +23,10 @@ public class Configuration {
     private YamlConfiguration padsYaml;
     private File padsMetaFile = new File("plugins/TravelPad/padmeta.yml");
     private YamlConfiguration padsMeta;
+
+    //TODO: Use this to allow a metaSave to be scheduled or not,
+    // still should lock updating pads out while doing the save itself.
+    private AtomicBoolean saveScheduled = new AtomicBoolean(false);
 
     public boolean requireItem = false;
     public boolean takeItem = false;
@@ -167,24 +171,14 @@ public class Configuration {
             return null;
     }
 
+    /**
+     * Consider switching this to flag for async save
+     * @param padName
+     * @param meta
+     */
     public void addPadMeta(String padName, Map<String, Object> meta) {
         padsMeta.set(padName, meta);
         //saveMeta();
-    }
-
-
-    public int getAllowedPads(Player player) {
-        if (player.hasPermission("travelpad.infinite")) {
-            return -1;
-        } else {
-            int allowed = 1;
-            for (int i = 0; i <= 100; i++) {
-                if (player.hasPermission("travelpad.max." + i)) {
-                    allowed = i;
-                }
-            }
-            return allowed;
-        }
     }
 
     public void reload() {
@@ -267,12 +261,17 @@ public class Configuration {
     }
 
     public void saveMeta(){
+        //padsMeta.saveToString();
         try {
             padsMeta.save(padsMetaFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
         Travelpad.log("Pad meta saved to disk");
+    }
+
+    public void writeMeta(String meta) {
+
     }
 
     public boolean emitsWater() {
