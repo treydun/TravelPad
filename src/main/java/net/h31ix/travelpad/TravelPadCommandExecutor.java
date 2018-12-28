@@ -31,11 +31,11 @@ public class TravelPadCommandExecutor implements CommandExecutor {
      * Comments: Switched method to case based, They dont NEED to return, i may remove that to make it a cleaner read
      * Not going to depend on spigots help context..
      *
-     * @param sender
-     * @param cmd
-     * @param alias
-     * @param args
-     * @return
+     * @param sender Console or In game Player
+     * @param cmd The command executed
+     * @param alias The alias used if an alias was used
+     * @param args Parameters of the command
+     * @return whether the command executed properly. False triggers Bukkits default Help from Plugin.yml
      */
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String alias, String[] args) {
@@ -78,7 +78,7 @@ public class TravelPadCommandExecutor implements CommandExecutor {
     }
 
     /**
-     * Reloads the config from disk and repropogates, if the sender has permission
+     * Reloads the config from disk and repopulates, if the sender has permission
      *
      * @param sender
      * @return true;
@@ -240,11 +240,12 @@ public class TravelPadCommandExecutor implements CommandExecutor {
             if (args[1].contains("/")) {
                 plugin.errorMessage(player, "Please do not use '/' in the TravelPad name!");
             } else {
-                if (plugin.Manager().padExists(args[1])) {
+                if (!plugin.Manager().padExists(args[1])) {
                     String name = args[1];
                     boolean set = plugin.namePad(player, name);
                     if (set) {
                         plugin.message(player, plugin.Lang().name_message() + ChatColor.WHITE + " " + name);
+                        return true;
                     } else {
                         plugin.errorMessage(player, plugin.Lang().name_deny_nopad());
                     }
@@ -340,7 +341,7 @@ public class TravelPadCommandExecutor implements CommandExecutor {
     private boolean set(CommandSender sender, String[] args) {
         //0 = set | 1 = padname | 2 == parameter
         //Proximal support?
-        if (args.length >= 4) {
+        if (args.length >= 3) {
             Pad pad = plugin.Manager().getPad(args[1]);
             if (pad != null) {
                 if (sender instanceof Player) {
@@ -350,9 +351,11 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                             case "public":
                                 pad.setPublic(true);
                                 plugin.Meta().saveMeta(pad.getName());
+                                plugin.message(sender, pad.getName()+" set public");
                                 return true;
                             case "private":
                                 pad.setPublic(false);
+                                plugin.message(sender, pad.getName()+" set private");
                                 return true;
                             case "direction":
                                 //TODO: Finish orientation command
@@ -374,6 +377,7 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                                     pad.setDescription(builder.toString());
                                     plugin.Meta().saveMeta(pad.getName());
                                 }
+                                plugin.message(sender, pad.getName()+"'s description set to: "+builder.toString());
                                 return true;
                             case "admin":
                                 //Remove old pad from config (No save)

@@ -12,5 +12,5 @@ api-version: 1.13
 commands:
   travelpad:
     description: Use travelpad
-    usage: /travelpad
+    usage: /travelpad [tp,identify,list,name,delete]
     aliases: t

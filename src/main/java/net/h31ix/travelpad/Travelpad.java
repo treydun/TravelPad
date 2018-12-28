@@ -35,7 +35,7 @@ public class Travelpad extends JavaPlugin {
     private TravelPadManager manager;
     private LangManager l;
     private SyncMeta syncMeta;
-    private BukkitTask syncMetaTask;
+    private int syncMetaTaskID;
 
     private Economy economy;
 
@@ -91,7 +91,7 @@ public class Travelpad extends JavaPlugin {
         pm.registerEvents(new TravelPadListener(this), this);
         getCommand("travelpad").setExecutor(new TravelPadCommandExecutor(this));
         syncMeta = new SyncMeta(this);
-        syncMetaTask = getServer().getScheduler().runTaskAsynchronously(this, syncMeta);
+        syncMetaTaskID = getServer().getScheduler().scheduleSyncRepeatingTask(this, syncMeta, 299L, 500L);
     }
 
     public boolean namePad(Player player, String name) {

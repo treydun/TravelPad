@@ -10,7 +10,7 @@ public class SyncMeta implements Runnable {
 
     public Travelpad plugin;
 
-    private Set<String> dirtyPads=new HashSet<>();
+    private Set<String> dirtyPads = new HashSet<>();
 
     private boolean enabled = true;
 
@@ -18,29 +18,18 @@ public class SyncMeta implements Runnable {
         this.plugin = plugin;
     }
 
-    //Thoughts... If you spin off a main thread task to swap the data from pad to config store you wont need to worry about
-    //concurrent modifications of it... only save needs to even be async... and you could lock
-
     @Override
     public void run() {
-        while (enabled) {
+        if (enabled) {
             if (!dirtyPads.isEmpty()) {
-                String[] dirty;
-                synchronized (dirtyPads){
-                    dirty = (String[]) dirtyPads.toArray();
-                    dirtyPads.clear();
-                }
-                Travelpad.log("Syncing meta with data store");
-                for(String dPad: dirty) {
+                String[] dirty = dirtyPads.toArray(new String[0]);
+                dirtyPads.clear();
+                Travelpad.log("Syncing "+dirty.length+" pads meta with data store");
+                for (String dPad : dirty) {
                     Pad pad = plugin.Manager().getPad(dPad);
                     plugin.Config().addPadMeta(pad.getName(), pad.getMeta());
                 }
-                plugin.Config().saveMeta();
-            }
-            try {
-                Thread.sleep(1000 * 60);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                plugin.Config().saveMetaAsync();
             }
         }
     }
@@ -50,9 +39,7 @@ public class SyncMeta implements Runnable {
     }
 
     //Sync? should only be sync calling it
-    public void saveMeta(String padName){
-        synchronized (dirtyPads){
-            dirtyPads.add(padName);
-        }
+    public void saveMeta(String padName) {
+        dirtyPads.add(padName);
     }
 }

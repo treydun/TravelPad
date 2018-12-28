@@ -141,6 +141,7 @@ public class TravelPadManager {
      * @param pad unnamed pad to remove
      */
     public void flushPad(UnnamedPad pad) {
+        Travelpad.log("Attempting to flush "+pad.toString());
         unvList.remove(pad);
     }
 
@@ -243,6 +244,7 @@ public class TravelPadManager {
     }
 
     public boolean isStillUnnamed(UnnamedPad pad) {
+        Travelpad.log("unvList.contains:"+pad.toString()+" "+unvList.contains(pad));
         return unvList.contains(pad);
     }
 
@@ -325,6 +327,7 @@ public class TravelPadManager {
      * @param name Name to be checked
      */
     public boolean padExists(String name) {
+        Travelpad.log("padsByName.contains "+name.toLowerCase()+padsByName.containsKey(name.toLowerCase()));
         return padsByName.containsKey(name.toLowerCase());
     }
 
@@ -427,7 +430,7 @@ public class TravelPadManager {
      * @return Set of unnamed pads that the player owns, null if they have none.
      */
     public List<UnnamedPad> getUnnamedPadsFrom(UUID owner) {
-        List<UnnamedPad> list = new ArrayList<UnnamedPad>();
+        List<UnnamedPad> list = new ArrayList<>();
         for (UnnamedPad pad : unvList) {
             if (pad.OwnerUUID() == owner) {
                 list.add(pad);

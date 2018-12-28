@@ -73,11 +73,11 @@ public class Configuration {
                         if (pad != null) {
                             addPad(Pad.serialize(pad));
                         } else {
-                            Travelpad.log("ERROR PARSING PAD DATA, FAILING IMPORT");
+                            Travelpad.error("Error Parsing Serialized Pad: "+legacyPadString+" Skipping!");
                         }
                     }
                     Travelpad.log("Import finished, saving...");
-                    save();
+                    savePads();
                 }
             }
         }
@@ -102,7 +102,7 @@ public class Configuration {
         padsList.add(pad);
         padsYaml.set("pads", padsList);
         if (save) {
-            saveAsync();
+            savePadsAsync();
         }
     }
 
@@ -115,7 +115,7 @@ public class Configuration {
         padsList.add(pad);
         padsYaml.set("unv", padsList);
         if (save) {
-            saveAsync();
+            savePadsAsync();
         }
     }
 
@@ -128,7 +128,7 @@ public class Configuration {
         padsList.remove(pad);
         padsYaml.set("pads", padsList);
         if (save) {
-            saveAsync();
+            savePadsAsync();
         }
     }
 
@@ -141,15 +141,24 @@ public class Configuration {
         padsList.remove(pad);
         padsYaml.set("unv", padsList);
         if (save) {
-            saveAsync();
+            savePadsAsync();
         }
     }
 
-    public void saveAsync() {
+    public void savePadsAsync() {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable() {
             @Override
             public void run() {
-                save();
+                savePads();
+            }
+        });
+    }
+
+    public void saveMetaAsync() {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+            @Override
+            public void run() {
+                saveMeta();
             }
         });
     }
@@ -178,7 +187,6 @@ public class Configuration {
      */
     public void addPadMeta(String padName, Map<String, Object> meta) {
         padsMeta.set(padName, meta);
-        //saveMeta();
     }
 
     public void reload() {
@@ -251,7 +259,7 @@ public class Configuration {
         padsMeta = YamlConfiguration.loadConfiguration(padsMetaFile);
     }
 
-    public void save() {
+    public void savePads() {
         try {
             padsYaml.save(padsFile);
         } catch (IOException ex) {
@@ -268,10 +276,6 @@ public class Configuration {
             e.printStackTrace();
         }
         Travelpad.log("Pad meta saved to disk");
-    }
-
-    public void writeMeta(String meta) {
-
     }
 
     public boolean emitsWater() {

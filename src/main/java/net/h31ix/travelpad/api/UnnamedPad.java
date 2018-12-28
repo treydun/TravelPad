@@ -82,10 +82,15 @@ public class UnnamedPad {
                 UUID ownerID = UUID.fromString(padData[4]);
                 uPad = new UnnamedPad(location, ownerID);
             } else {
-
+                Travelpad.error("Failed to find world "+padData[0]+" to load unnamed pad");
             }
         }
         return uPad;
+    }
+
+    @Override
+    public String toString(){
+        return Travelpad.formatLocation(location)+" "+ownerUUID;
     }
 }
 

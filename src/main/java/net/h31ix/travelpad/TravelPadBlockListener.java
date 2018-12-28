@@ -111,8 +111,10 @@ public class TravelPadBlockListener implements Listener {
             //Was getPadNear()
             Pad pad = plugin.Manager().getPadAt(block.getLocation());
             if (pad != null) {
-                if (event.getPlayer().hasPermission("travelpad.create")) {
-                    if (plugin.Config().anyBreak || pad.ownerUUID().equals(event.getPlayer().getUniqueId())) {
+                if (event.getPlayer().hasPermission("travelpad.delete")) {
+                    //TODO: should be travelpad.admin?
+                    // travelpad.delete.other?
+                    if (plugin.Config().anyBreak || event.getPlayer().hasPermission("travelpad.delete.any") || pad.ownerUUID().equals(event.getPlayer().getUniqueId())) {
                         plugin.delete(pad);
                     } else {
                         event.getPlayer().sendMessage(ChatColor.RED + plugin.Lang().command_deny_permission());
