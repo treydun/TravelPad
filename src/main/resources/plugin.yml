@@ -14,3 +14,50 @@ commands:
     description: Use travelpad
     usage: /travelpad [tp,identify,list,name,delete]
     aliases: t
+permissions:
+  travelpad.*:
+    description: Give ALL permissions. Same as OP
+    # default allowed values - true, false, op, not op or no op? Plugin page is fuzzy
+    default: false
+    children:
+      travelpad.basic: true
+      travelpad.user: true
+      travelpad.admin: true
+      # A value of false inherits the inverse parent permission, so -blankplugin.something?
+  travelpad.basic:
+    description: Permission to use basic Travelpad teleport commands.
+    default: true
+    children:
+      travelpad.teleport: true
+      travelpad.identify: true
+  travelpad.user:
+    description: Permission to make and remove telepads.
+    default: false
+    children:
+      travelpad.basic: true
+      travelpad.create: true
+      travelpad.delete: true
+      travelpad.set: true
+      travelpad.prepay: true
+  travelpad.admin:
+    description: Permission to manage travelpads serverwide
+    default: false
+    children:
+      travelpad.user: true
+      travelpad.list.others: true
+      travelpad.delete.others: true
+  travelpad.reload:
+    description: Permission to reload config files from disk.
+    default: OP
+  travelpad.teleport.free:
+    description: Teleport using a travelpad for free.
+    default: OP
+  travelpad.teleport.anywhere:
+    description: Dont need to be standing on a pad to teleport
+    default: OP
+  payme.splash:
+    description: Permission to splash
+    default: OP
+  payme.hug:
+    description: Permission to hug
+    default: OP

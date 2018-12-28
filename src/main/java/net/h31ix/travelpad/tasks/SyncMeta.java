@@ -42,4 +42,18 @@ public class SyncMeta implements Runnable {
     public void saveMeta(String padName) {
         dirtyPads.add(padName);
     }
+
+    public void forceSave(){
+        if (!dirtyPads.isEmpty()) {
+            String[] dirty = dirtyPads.toArray(new String[0]);
+            dirtyPads.clear();
+            Travelpad.log("Syncing "+dirty.length+" pads meta with data store");
+            for (String dPad : dirty) {
+                Pad pad = plugin.Manager().getPad(dPad);
+                plugin.Config().addPadMeta(pad.getName(), pad.getMeta());
+            }
+            Travelpad.log("Writing meta to disk.");
+            plugin.Config().saveMeta();
+        }
+    }
 }

@@ -2,15 +2,12 @@ package net.h31ix.travelpad;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.buildatnight.unity.Unity;
-import jdk.nashorn.internal.codegen.types.Type;
 import net.h31ix.travelpad.api.Configuration;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.api.TravelPadManager;
@@ -28,7 +25,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 public class Travelpad extends JavaPlugin {
     private Configuration config;
@@ -45,7 +41,8 @@ public class Travelpad extends JavaPlugin {
 
     @Override
     public void onDisable() {
-
+        getServer().getScheduler().cancelTask(syncMetaTaskID);
+        syncMeta.forceSave();
     }
 
     @Override

@@ -232,6 +232,7 @@ public class TravelPadManager {
 
     public void setPrivate(Pad pad) {
         pad.setPublic(false);
+        //TODO: Strip meta
     }
 
     public void setMeta(Pad pad, String description) {
@@ -244,7 +245,6 @@ public class TravelPadManager {
     }
 
     public boolean isStillUnnamed(UnnamedPad pad) {
-        Travelpad.log("unvList.contains:"+pad.toString()+" "+unvList.contains(pad));
         return unvList.contains(pad);
     }
 
