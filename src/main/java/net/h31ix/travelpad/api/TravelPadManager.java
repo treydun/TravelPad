@@ -24,8 +24,9 @@ public class TravelPadManager {
     private HashMap<UUID, List<Pad>> padsByUUID = new HashMap<>();
 
     private List<UnnamedPad> unvList = new ArrayList<>();
-    private List<Pad> publicPads = new ArrayList<>();
 
+    private ArrayList<Pad> publicPads = new ArrayList<>();
+    private List<Pad> adminPads = new ArrayList<>();
 
     public TravelPadManager(Travelpad plugin) {
         this.plugin = plugin;
@@ -74,6 +75,8 @@ public class TravelPadManager {
                 }
             }
         }
+        Arrays.sort(publicPads.toArray());
+
     }
 
     public void cachePad(Pad pad) {
@@ -141,7 +144,7 @@ public class TravelPadManager {
      * @param pad unnamed pad to remove
      */
     public void flushPad(UnnamedPad pad) {
-        Travelpad.log("Attempting to flush "+pad.toString());
+        Travelpad.log("Attempting to flush " + pad.toString());
         unvList.remove(pad);
     }
 
@@ -153,6 +156,33 @@ public class TravelPadManager {
     public void removePad(UnnamedPad pad) {
         plugin.Config().removeUnnamedPad(pad.serialize(), true);
         flushPad(pad);
+    }
+
+    public void setDirection(Pad pad, String direction) {
+        //This change is done ON the pad object itself. Hopefully that means no need to flush and recache here... Location doesnt change...
+        if (!direction.isEmpty()) {
+            //Remove old pad from Config Store (No save yet)
+            plugin.Config().removePad(Pad.serialize(pad));
+            switch (direction) {
+                case "north":
+                case "n":
+                    pad.getLocation().setYaw(180);
+                    break;
+                case "west":
+                case "w":
+                    pad.getLocation().setYaw(90);
+                    break;
+                case "east":
+                case "e":
+                    pad.getLocation().setYaw(-90);
+                    break;
+                default:
+                    pad.getLocation().setYaw(0);
+                    break;
+            }
+            //Add pad to serialized Config Store and save
+            plugin.Config().addPad(Pad.serialize(pad), true); //Triggers Async Padlist Save
+        }
     }
 
     public String locToString(Location location) {
@@ -225,25 +255,6 @@ public class TravelPadManager {
         }
     }
 
-    public void setPublic(Pad pad) {
-        pad.setPublic(true);
-        plugin.Meta().saveMeta(pad.getName());
-    }
-
-    public void setPrivate(Pad pad) {
-        pad.setPublic(false);
-        //TODO: Strip meta
-    }
-
-    public void setMeta(Pad pad, String description) {
-        pad.setDescription(description);
-        plugin.Meta().saveMeta(pad.getName());
-    }
-
-    public void setMeta(Pad pad, int direction) {
-
-    }
-
     public boolean isStillUnnamed(UnnamedPad pad) {
         return unvList.contains(pad);
     }
@@ -312,6 +323,7 @@ public class TravelPadManager {
         TravelPadDeleteEvent d = new TravelPadDeleteEvent(pad);
         plugin.getServer().getPluginManager().callEvent(d);
         if (!d.isCancelled()) {
+            plugin.Config().removeMeta(pad.getName()); //TODO: Triggers Async Metasave(should be syncmeta aware?)
             removePad(pad); //Triggers Async save
             Player player = Bukkit.getPlayer(pad.ownerUUID());
             if (player != null) {
@@ -327,7 +339,7 @@ public class TravelPadManager {
      * @param name Name to be checked
      */
     public boolean padExists(String name) {
-        Travelpad.log("padsByName.contains "+name.toLowerCase()+padsByName.containsKey(name.toLowerCase()));
+        Travelpad.log("padsByName.contains " + name.toLowerCase() + padsByName.containsKey(name.toLowerCase()));
         return padsByName.containsKey(name.toLowerCase());
     }
 
@@ -453,6 +465,10 @@ public class TravelPadManager {
             allPads.add(padsByName.get(key));
         }
         return allPads;
+    }
+
+    public List<Pad> getPublicPads(){
+        return publicPads;
     }
 
     /**

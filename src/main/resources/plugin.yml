@@ -55,9 +55,3 @@ permissions:
   travelpad.teleport.anywhere:
     description: Dont need to be standing on a pad to teleport
     default: OP
-  payme.splash:
-    description: Permission to splash
-    default: OP
-  payme.hug:
-    description: Permission to hug
-    default: OP

@@ -16,19 +16,19 @@ import java.util.UUID;
  * <p>
  * Defines a new TravelPad on the map, this is only used after a pad has a name.
  */
-public class Pad {
+public class Pad implements Comparable {
 
     private Location location;
     private String name;
     private UUID ownerUUID;
 
     private transient String ownerName = "";
+    private transient Location teleportLocation=null;
 
     private boolean publicPad = false;
     private String description = "";
     private long lastUsed = 0L;
     private int prepaidTeleports = 0;
-    private int direction = 0;
 
 
     public Pad(Location location, UUID ownerUUID, String name) {
@@ -46,17 +46,21 @@ public class Pad {
         return location;
     }
 
+    public void setLocation(Location location) {
+        this.location = location;
+    }
+
     /**
      * Get the location of the pad that is safe for a player to teleport to
      *
      * @return location  Safe teleport location
      */
     public Location getTeleportLocation() {
-        return new Location(location.getWorld(), location.getX(), location.getY() + 2, location.getZ());
+        return new Location(location.getWorld(), location.getX(), location.getY() + 2, location.getZ(),location.getYaw(),0);
     }
 
-    public void setOwnerUUID(UUID ownerUUID){
-        this.ownerUUID=ownerUUID;
+    public void setOwnerUUID(UUID ownerUUID) {
+        this.ownerUUID = ownerUUID;
     }
 
     /**
@@ -95,113 +99,97 @@ public class Pad {
         this.name = name;
     }
 
-    public void setPublic(boolean makePublic){
-        publicPad=makePublic;
+    public void setPublic(boolean makePublic) {
+        publicPad = makePublic;
     }
 
-    public boolean isPublic(){
+    public boolean isPublic() {
         return publicPad;
     }
 
-    public void setDescription(String description){
-        this.description=description;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getDescription() {
         return description;
     }
 
-    public void setDirection(int direction){
-        //TODO: On meta import this method would need to be invoked to properly update the location
-        //0 = Default Rotation
-        switch (direction){
-            case 0:
-                this.location=new Location(this.location.getWorld(),
-                        this.location.getBlockX(),
-                        this.location.getBlockY(),
-                        this.location.getBlockZ());
-                break;
-            case 1:
-                this.location=new Location(this.location.getWorld(),
-                        this.location.getBlockX(),
-                        this.location.getBlockY(),
-                        this.location.getBlockZ(),
-                        0F,
-                        90F);
-                break;
-            case 2:
-                this.location=new Location(this.location.getWorld(),
-                        this.location.getBlockX(),
-                        this.location.getBlockY(),
-                        this.location.getBlockZ(),
-                        0F,
-                        180F);
-                break;
-            case 3:
-                this.location=new Location(this.location.getWorld(),
-                        this.location.getBlockX(),
-                        this.location.getBlockY(),
-                        this.location.getBlockZ(),
-                        0F,
-                        270F);
-                break;
-        }
-        this.direction=direction;
-    }
-
-    public int getDirection(){
-        return direction;
-    }
-
     public boolean hasMeta() {
-        return publicPad || !description.isEmpty() || lastUsed!=0L || prepaidTeleports!=0 || direction!=0;
+        return publicPad || !description.isEmpty() || lastUsed != 0L || prepaidTeleports != 0;
     }
 
-    public void importMeta(Map<String, Object> meta){
-        if(!meta.isEmpty()){
-            for(String key:meta.keySet()){
-                switch(key){
+    public void importMeta(Map<String, Object> meta) {
+        if (!meta.isEmpty()) {
+            for (String key : meta.keySet()) {
+                switch (key) {
                     case "description":
-                        description=(String) meta.get(description);
+                        description = (String) meta.get("description");
                         break;
                     case "lastused":
-                        lastUsed=Long.parseLong((String) meta.get("lastused"));
+                        lastUsed = Long.parseLong((String) meta.get("lastused"));
                         break;
                     case "prepaidteleports":
-                        prepaidTeleports=Integer.parseInt((String) meta.get("prepaidteleports"));
-                    case "direction":
-                        //TODO: Either call method to set new Location or handle Location in manager
-                        direction = Integer.parseInt((String) meta.get("direction"));
+                        prepaidTeleports = Integer.parseInt((String) meta.get("prepaidteleports"));
                     case "public":
-                        publicPad=true;
+                        publicPad = true;
                 }
             }
         }
     }
 
-    public Map<String, Object> getMeta(){
+    public Map<String, Object> getMeta() {
         Map<String, Object> meta = new HashMap<>();
-        if(publicPad){
-            meta.put("public",true);
+        if (publicPad) {
+            meta.put("public", true);
         }
-        if(!description.isEmpty()){
-            meta.put("description",description);
+        if (!description.isEmpty()) {
+            meta.put("description", description);
         }
-        if(lastUsed!=0L){
+        if (lastUsed != 0L) {
             meta.put("lastused", lastUsed);
         }
-        if(prepaidTeleports!=0){
-            meta.put("prepaidteleports",prepaidTeleports);
+        if (prepaidTeleports != 0) {
+            meta.put("prepaidteleports", prepaidTeleports);
         }
-        if(direction!=0){
-            meta.put("direction",direction);
+        //If failed to find any meta to store, purge from metastore via null
+        if (meta.isEmpty()) {
+            return null;
+        } else {
+            return meta;
         }
-        return meta;
     }
 
     @Override
     public String toString() {
-        return name + " " + Travelpad.formatLocation(location) + " " + ownerUUID;
+        StringBuilder builder = new StringBuilder(name);
+        builder.append(" ");
+        builder.append(Travelpad.formatLocation(location));
+        builder.append(" ");
+        builder.append(ownerUUID);
+        if(ownerName!=null && !ownerName.isEmpty()) {
+            builder.append(" ");
+            builder.append(ownerName);
+        }
+        if(publicPad){
+            builder.append(" ");
+            builder.append("public: true");
+        }
+        if(description!=null && !description.isEmpty()) {
+            builder.append(" ");
+            builder.append(description);
+        }
+        if(lastUsed!=0){
+            builder.append(" ");
+            builder.append("last used:");
+            builder.append(lastUsed);
+        }
+        if(prepaidTeleports!=0){
+            builder.append(" ");
+            builder.append("prepaid:");
+            builder.append(prepaidTeleports);
+        }
+        return builder.toString();
     }
 
     @Override
@@ -230,6 +218,10 @@ public class Pad {
         padString.append(Travelpad.DELIMINATOR);
         padString.append(pad.getLocation().getBlockZ());
         padString.append(Travelpad.DELIMINATOR);
+        if (pad.getLocation().getYaw() != 0.0F) {
+            padString.append(pad.getLocation().getYaw());
+            padString.append(Travelpad.DELIMINATOR);
+        }
         padString.append(pad.ownerUUID.toString());
         return padString.toString();
     }
@@ -245,29 +237,58 @@ public class Pad {
                 int x = Integer.parseInt(padData[2]);
                 int y = Integer.parseInt(padData[3]);
                 int z = Integer.parseInt(padData[4]);
-                Location location = new Location(world, x, y, z);
+                Location location = new Location(world, x + .5, y + .5, z + .5);
                 UUID ownerID = UUID.fromString(padData[5]);
                 pad = new Pad(location, ownerID, padData[0]);
             } else {
-                Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR+ ChatColor.RED+"Failed to load a location with "+padData[1]+" world");
+                Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Failed to load a location with " + padData[1] + " world");
             }
         } else if (padData.length == 7) {
             //Tpads 2.0 Name/X/Y/Z/World/OwnerName/OwnerUUID
-            World world = Bukkit.getWorld(padData[4]);
-            if (world != null) {
-                int x = Integer.parseInt(padData[1]);
-                int y = Integer.parseInt(padData[2]);
-                int z = Integer.parseInt(padData[3]);
-                Location location = new Location(world, x, y, z);
-                UUID ownerID = UUID.fromString(padData[6]);
-                pad = new Pad(location, ownerID, padData[0]);
-                pad.setOwnerName(padData[5]);
+            if (Travelpad.isInteger.matcher(padData[1]).matches()) {
+                World world = Bukkit.getWorld(padData[4]);
+                if (world != null) {
+                    int x = Integer.parseInt(padData[1]);
+                    int y = Integer.parseInt(padData[2]);
+                    int z = Integer.parseInt(padData[3]);
+                    Location location = new Location(world, x + .5F, y + .5F, z + .5F);
+                    UUID ownerID = UUID.fromString(padData[6]);
+                    pad = new Pad(location, ownerID, padData[0]);
+                    pad.setOwnerName(padData[5]);
+                } else {
+                    Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Failed to load a location with " + padData[4] + " world");
+                }
             } else {
-                Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR+ ChatColor.RED+"Failed to load a location with "+padData[4]+" world");
+                //Tpads 3.1 Name/World/X/Y/Z/NSEW/OwnerUUID
+                World world = Bukkit.getWorld(padData[1]);
+                if (world != null) {
+                    int x = Integer.parseInt(padData[2]);
+                    int y = Integer.parseInt(padData[3]);
+                    int z = Integer.parseInt(padData[4]);
+                    float direction = Float.parseFloat(padData[5]);
+                    Location location = new Location(world, x + .5, y + .5, z + .5, direction, 0.0F);
+                    UUID ownerID = UUID.fromString(padData[6]);
+                    pad = new Pad(location, ownerID, padData[0]);
+                } else {
+                    Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Failed to load a location with " + padData[1] + " world");
+                }
             }
         } else {
             System.out.print("Tpads Error: Failed to deserialize " + serialized + " := Incorrect Parameter Length");
         }
         return pad;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        if (o instanceof Pad) {
+            Pad otherPad = (Pad) o;
+            if (this.lastUsed > otherPad.lastUsed) {
+                return 1;
+            } else {
+                return -1;
+            }
+        }
+        return 0;
     }
 }

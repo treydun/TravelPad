@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import com.buildatnight.unity.Unity;
 import net.h31ix.travelpad.api.Configuration;
@@ -36,8 +37,10 @@ public class Travelpad extends JavaPlugin {
     private Economy economy;
 
     public static final String PLUGIN_PREFIX_COLOR = ChatColor.DARK_GRAY + "[" + ChatColor.BLUE + "TravelPads" + ChatColor.DARK_GRAY + "] " + ChatColor.GRAY;
+    public static final String PLUGIN_CHAT_HEADER = ChatColor.DARK_GRAY +"        - - - - - - - "+PLUGIN_PREFIX_COLOR+ChatColor.DARK_GRAY+"- - - - - - -";
     public static final UUID ADMIN_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     public static final String DELIMINATOR = "/";
+    public static final Pattern isInteger = Pattern.compile("-?\\d+");
 
     @Override
     public void onDisable() {
@@ -345,7 +348,7 @@ public class Travelpad extends JavaPlugin {
     public static String formatLocation(Location loc) {
         if (loc != null) {
             if (loc.getWorld() != null)
-                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " " + loc.getWorld().getName();
+                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " " + loc.getWorld().getName()+" pitch:"+loc.getPitch();
             else
                 return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " null world.";
         } else {
@@ -359,6 +362,10 @@ public class Travelpad extends JavaPlugin {
 
     public void message(CommandSender sender, String message) {
         sender.sendMessage(PLUGIN_PREFIX_COLOR + ChatColor.GREEN + message);
+    }
+
+    public void sendLine(CommandSender sender, String message) {
+        sender.sendMessage(message);
     }
 
     public String getPlayerName(UUID playersUUID) {

@@ -180,6 +180,11 @@ public class Configuration {
             return null;
     }
 
+    public void removeMeta(String padName){
+        padsMeta.set(padName, null);
+        saveMetaAsync();
+    }
+
     /**
      * Consider switching this to flag for async save
      * @param padName

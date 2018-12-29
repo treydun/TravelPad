@@ -1,6 +1,7 @@
 package net.h31ix.travelpad;
 
 import com.buildatnight.legacyutils.Format;
+import com.buildatnight.travelpad.cl.netgamer.TabText;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.event.TravelPadTeleportEvent;
 import net.md_5.bungee.api.ChatColor;
@@ -32,9 +33,9 @@ public class TravelPadCommandExecutor implements CommandExecutor {
      * Not going to depend on spigots help context..
      *
      * @param sender Console or In game Player
-     * @param cmd The command executed
-     * @param alias The alias used if an alias was used
-     * @param args Parameters of the command
+     * @param cmd    The command executed
+     * @param alias  The alias used if an alias was used
+     * @param args   Parameters of the command
      * @return whether the command executed properly. False triggers Bukkits default Help from Plugin.yml
      */
     @Override
@@ -50,6 +51,7 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                 case "s":
                     return set(sender, args);
                 case "identify":
+                case "info":
                 case "i":
                     return identify(sender);
                 case "delete":
@@ -174,33 +176,43 @@ public class TravelPadCommandExecutor implements CommandExecutor {
             }
             return true;
         } else if (args.length == 2) {
-            if (args[1].equalsIgnoreCase("all") && sender.hasPermission("travelpad.list.all")) {
-                List<Pad> pads = plugin.Manager().getPads();
-                if (pads != null && !pads.isEmpty()) {
-                    for (Pad p : pads) {
-                        sender.sendMessage(p.getName() + ":" + Pad.serialize(p));
+            if (args[1].equalsIgnoreCase("all")) {
+                if (sender.hasPermission("travelpad.list.all")) {
+                    List<Pad> pads = plugin.Manager().getPads();
+                    if (pads != null && !pads.isEmpty()) {
+                        for (Pad p : pads) {
+                            sender.sendMessage(Pad.serialize(p));
+                        }
+                        return true;
+                    } else {
+                        sender.sendMessage("Unable to find any pads");
+                        return true;
                     }
-                    return true;
                 } else {
-                    sender.sendMessage("Unable to find any pads");
+                    plugin.errorMessage(sender, plugin.Lang().command_deny_permission());
                     return true;
                 }
-            } else if (args[1].equalsIgnoreCase("Admin") && sender.hasPermission("travelpad.list.admin")) {
-                List<Pad> pads = plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID);
-                if (pads != null && !pads.isEmpty()) {
-                    plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
-                    for (Pad p : pads) {
-                        TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
-                        padName.setColor(ChatColor.GREEN);
-                        padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
-                        padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
-                        if (sender instanceof Player) {
-                            //TODO: Recasting each time in a loop is dumbie
-                            ((Player) sender).spigot().sendMessage(padName);
-                        } else {
-                            sender.sendMessage(padName.toLegacyText());
+            } else if (args[1].equalsIgnoreCase("Admin")) {
+                if (sender.hasPermission("travelpad.list.admin")) {
+                    List<Pad> pads = plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID);
+                    if (pads != null && !pads.isEmpty()) {
+                        plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
+                        for (Pad p : pads) {
+                            TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
+                            padName.setColor(ChatColor.GREEN);
+                            padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
+                            padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
+                            if (sender instanceof Player) {
+                                //TODO: Recasting each time in a loop is dumbie
+                                ((Player) sender).spigot().sendMessage(padName);
+                            } else {
+                                sender.sendMessage(padName.toLegacyText());
+                            }
                         }
                     }
+                } else {
+                    plugin.errorMessage(sender, plugin.Lang().command_deny_permission());
+                    return true;
                 }
             } else if (sender.hasPermission("travelpad.list.others")) {
                 UUID ownerID = plugin.getPlayerUUIDbyName(args[1]);
@@ -351,19 +363,16 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                             case "public":
                                 pad.setPublic(true);
                                 plugin.Meta().saveMeta(pad.getName());
-                                plugin.message(sender, pad.getName()+" set public");
+                                plugin.message(sender, pad.getName() + " set public");
                                 return true;
                             case "private":
                                 pad.setPublic(false);
-                                plugin.message(sender, pad.getName()+" set private");
+                                //Currently designed to allow meta to persist even when public is shut off. Shouldnt be too much of a problem
+                                plugin.Meta().saveMeta(pad.getName());
+                                plugin.message(sender, pad.getName() + " set private");
                                 return true;
                             case "direction":
-                                //TODO: Finish orientation command
-                                if (args[3].toLowerCase().equals("n")) {
-
-                                } else if (args[3].toLowerCase().equals("s")) {
-
-                                }
+                                plugin.Manager().setDirection(pad, args[3].toLowerCase());
                                 return true;
                             case "description":
                                 StringBuilder builder = new StringBuilder();
@@ -373,11 +382,11 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                                         builder.append(" ");
                                     }
                                 }
-                                if (builder.length() > 0) {
-                                    pad.setDescription(builder.toString());
-                                    plugin.Meta().saveMeta(pad.getName());
-                                }
-                                plugin.message(sender, pad.getName()+"'s description set to: "+builder.toString());
+                                //if (builder.length() > 0) { //Need way to null out description, this is it
+                                pad.setDescription(builder.toString());
+                                plugin.Meta().saveMeta(pad.getName());
+                                //}
+                                plugin.message(sender, pad.getName() + "'s description set to: " + builder.toString());
                                 return true;
                             case "admin":
                                 //Remove old pad from config (No save)
@@ -390,25 +399,58 @@ public class TravelPadCommandExecutor implements CommandExecutor {
                                 plugin.Manager().addPad(pad);
                                 return true;
                         }
+                        plugin.errorMessage(sender, "Failed to match " + args[2].toLowerCase() + " to any set options");
                     }
+                    plugin.errorMessage(sender, plugin.Lang().command_deny_permission());
                 }
+                plugin.errorMessage(sender, plugin.Lang().command_deny_console());
             }
+            plugin.errorMessage(sender, "Unable to find a pad by that name");
         }
         return false;
     }
 
     private boolean publicPadList(CommandSender sender) {
-
+        plugin.sendLine(sender, Travelpad.PLUGIN_CHAT_HEADER);
+        StringBuilder builder = new StringBuilder('\n');
+        builder.append('\n');
+        builder.append(" [Admin Pads]");
+        builder.append('\n');
+        //Crap need clickable links, no builder here... Prob individial messages :S
+        for (Pad adminPad : plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID)) {
+            builder.append(adminPad.getName());
+            if (adminPad.getDescription() != null && !adminPad.getDescription().isEmpty()) {
+                builder.append('`');
+                builder.append(adminPad.getDescription());
+            }
+            builder.append('\n');
+        }
+        builder.append('\n');
+        builder.append(" [Public Pads]");
+        builder.append('\n');
+        for (Pad publicPad : plugin.Manager().getPublicPads()) {
+            builder.append(publicPad.getName());
+            if (publicPad.getDescription() != null && !publicPad.getDescription().isEmpty()) {
+                builder.append('`');
+                builder.append(publicPad.getDescription());
+            }
+            builder.append('\n');
+        }
+        TabText tt = new TabText(builder.toString());
+        tt.setPageHeight(10);
+        tt.setTabs(new int[]{12});
+        plugin.sendLine(sender, tt.getPage(1, false));
         return true;
     }
 
     private boolean showHelp(CommandSender sender) {
         sender.sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + "Error in command. Heres some hints!");
         sender.sendMessage(ChatColor.GREEN + " /travelpad [teleport/tp] (SomePadName)");
-        sender.sendMessage(ChatColor.GREEN + " /travelpad [identify/i]");
+        sender.sendMessage(ChatColor.GREEN + " /travelpad [info/i]");
         sender.sendMessage(ChatColor.GREEN + " /travelpad [list/l]");
         sender.sendMessage(ChatColor.GREEN + " /travelpad [name/n] (Name)");
         sender.sendMessage(ChatColor.GREEN + " /travelpad [delete/d] (Name)");
+        sender.sendMessage(ChatColor.GREEN + " /travelpad [set/s] (Name) [Public|Description] [Description]");
         return true;
     }
 }
