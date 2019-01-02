@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,13 +23,11 @@ public class Configuration {
     private File padsMetaFile = new File("plugins/TravelPad/padmeta.yml");
     private YamlConfiguration padsMeta;
 
-    //TODO: Use this to allow a metaSave to be scheduled or not,
-    // still should lock updating pads out while doing the save itself.
-    private AtomicBoolean saveScheduled = new AtomicBoolean(false);
-
+    public boolean debugMode= false;
     public boolean requireItem = false;
     public boolean takeItem = false;
     public Material itemType = null;
+    public Material anywhereItem = null;
 
     private boolean chargeCreate = false;
     public double createAmount = 0;
@@ -48,6 +45,7 @@ public class Configuration {
 
     public Material center = Material.OBSIDIAN;
     public Material outline = Material.BRICKS;
+
 
     public Configuration(Travelpad plugin) {
         this.plugin = plugin;
@@ -203,12 +201,18 @@ public class Configuration {
     }
 
     private void importConfigValues() {
+        debugMode = config.getBoolean("debug");
+        //Load new config lines with existing config, prob should be better managed with version control switch or something
+        config.options().copyDefaults(true);
         boolean save = false;
         requireItem = config.getBoolean("Teleportation Options.Require item");
-        if (requireItem) {
+
+        anywhereItem = Material.valueOf(config.getString("Teleportation Options.Anywhere item"));
+
+        //if (requireItem) {
             takeItem = config.getBoolean("Teleportation Options.Take item");
             itemType = Material.valueOf(config.getString("Teleportation Options.Item name"));
-        }
+        //}
 
         if (config.getString("Portal Options.Allow any player to break") == null) {
             config.set("Portal Options.Allow any player to break", false);

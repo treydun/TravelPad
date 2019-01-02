@@ -115,6 +115,13 @@ public class Pad implements Comparable {
         return description;
     }
 
+    public void setLastUsed(){
+        System.currentTimeMillis();
+    }
+
+    public long getLastUsed(){
+        return lastUsed;
+    }
     public boolean hasMeta() {
         return publicPad || !description.isEmpty() || lastUsed != 0L || prepaidTeleports != 0;
     }

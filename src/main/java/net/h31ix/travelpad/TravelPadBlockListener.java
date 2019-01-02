@@ -4,7 +4,6 @@ import net.h31ix.travelpad.api.Pad;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
@@ -21,6 +20,8 @@ import org.bukkit.inventory.EquipmentSlot;
 
 public class TravelPadBlockListener implements Listener {
 
+    private final String TRAVELPAD_SIGN_TAG = (ChatColor.GREEN+"[Travelpad]").intern();
+
     private Travelpad plugin;
 
     public TravelPadBlockListener(Travelpad plugin) {
@@ -29,7 +30,7 @@ public class TravelPadBlockListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getHand().equals(EquipmentSlot.HAND)) {
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getHand() == EquipmentSlot.HAND) {
             Block block = event.getClickedBlock();
             if (block.getType() == plugin.Config().center) {
                 if (block.getRelative(BlockFace.EAST).getType() == plugin.Config().outline
@@ -45,38 +46,37 @@ public class TravelPadBlockListener implements Listener {
                         event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + "There is already a Travelpad at this location!");
                     }
                 }
-            } else if (event.getHand().equals(EquipmentSlot.HAND) && (block.getType() == Material.getMaterial("SIGN_POST") || block.getType() == Material.getMaterial("WALL_SIGN"))) {
-                if (!event.isCancelled()) {
-                    {
-                        BlockState bState = block.getState();
-                        Sign sign = (Sign) bState;
-                        if (sign.getLine(0).equalsIgnoreCase("[Travelpad]")
-                                || sign.getLine(0).equalsIgnoreCase("Travelpad")) {
-                            if (plugin.Manager().getPad(sign.getLine(1)) != null) {
-                                sign.setLine(0, ChatColor.GREEN + "[Travelpad]");
-                            } else {
-                                sign.setLine(0, ChatColor.RED + "[Travelpad]");
-                                event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Error, unable to find the pad " + sign.getLine(1));
-                            }
+            } else if (block.getType() == Material.SIGN || block.getType() == Material.WALL_SIGN) {
+                {
+                    BlockState bState = block.getState();
+                    Sign sign = (Sign) bState;
+                    if(sign.getLine(0).equals(TRAVELPAD_SIGN_TAG)) {
+                        if (plugin.Manager().getPad(sign.getLine(1)) != null) {
+                            event.getPlayer().performCommand("/t tp " + sign.getLine(1));
+                        } else {
+                            sign.setLine(0, ChatColor.RED + "[Travelpad]");
+                            sign.update(true);
+                            event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Error, unable to find the pad " + sign.getLine(1));
                         }
-                        if (sign.getLine(0).equalsIgnoreCase(ChatColor.GREEN + "{Travelpad]")) {
-                            //To validate every teleport or not... If invalid it wouldnt work, turn it red?
-                            //Prob a good idea for when pads get removed without the sign users knowing
-                            if (plugin.Manager().getPad(sign.getLine(1)) != null) {
-                                event.getPlayer().performCommand("t tp " + sign.getLine(1));
-                            } else {
-                                sign.setLine(0, ChatColor.RED + "[Travelpad]");
-                                event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Error, unable to find the pad " + sign.getLine(1));
-                            }
+                    } else if (sign.getLine(0).toLowerCase().contains("travelpad")) {
+                        if (plugin.Manager().getPad(sign.getLine(1)) != null) {
+                            sign.setLine(0, TRAVELPAD_SIGN_TAG);
+                            sign.update(true);
+                            event.getPlayer().performCommand("t tp " + sign.getLine(1));
+                        } else {
+                            sign.setLine(0, ChatColor.RED + "[Travelpad]");
+                            sign.update(true);
+                            event.getPlayer().sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Error, unable to find the pad " + sign.getLine(1));
                         }
-                        //Legacy sign support
-                        if (sign.getLine(1).startsWith("/t tp ")) {
-                            event.getPlayer().performCommand(sign.getLine(1).substring(1));
-                        }
+                    }
+                    //Legacy sign support
+                    if (sign.getLine(1).startsWith("/t tp ")) {
+                        event.getPlayer().performCommand(sign.getLine(1).substring(1));
                     }
                 }
             }
         }
+
     }
 
     @EventHandler(priority = EventPriority.LOW)
@@ -115,6 +115,7 @@ public class TravelPadBlockListener implements Listener {
                     //TODO: should be travelpad.admin?
                     // travelpad.delete.other?
                     if (plugin.Config().anyBreak || event.getPlayer().hasPermission("travelpad.delete.any") || pad.ownerUUID().equals(event.getPlayer().getUniqueId())) {
+                        plugin.message(event.getPlayer(), plugin.Lang().delete_approve());
                         plugin.delete(pad);
                     } else {
                         event.getPlayer().sendMessage(ChatColor.RED + plugin.Lang().command_deny_permission());

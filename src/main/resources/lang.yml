@@ -1,7 +1,7 @@
 #Language: English
 travel_deny_item: Teleportation requires you to have one 
 travel_deny_money: You cannot afford that!
-travel_approve_item:  has been charged for travel.
+travel_approve_item: You were charged %item% for travel.
 travel_message: The wind rushes through your hair...
 
 charge_message: You have been charged 

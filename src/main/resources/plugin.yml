@@ -1,24 +1,34 @@
-author: H31IX
-database: false
-description: Travelpad plugin for Bukkit.
-main: net.h31ix.travelpad.Travelpad
 name: TravelPad
-startup: postworld
-url: http://H31IX.NET/
-version: '3.0'
+version: 3.1
+description: Travelpad lets players create their own Physical Teleport pads (Similar to a /warp) in the world
+#This plugin was originally written by H31IX however this version (Travelpads Reloaded) is maintained by Treydun
+#Therefor the author tag has been changed to represent the current maintainer as spec in https://hub.spigotmc.org/javadocs/spigot/org/bukkit/plugin/PluginDescriptionFile.html
+#H31IX has been moved to the authors section
+author: Treydun
+authors: [H31IX]
+website: https://www.buildatnight.com/travelpad
+
+main: net.h31ix.travelpad.Travelpad
+api-version: 1.13
 softdepend: [Vault]
 depend: [Unity]
-api-version: 1.13
+startup: postworld
+#Legacy Tags
+#url: http://H31IX.NET/ (Offline)
+#database: false
+
 commands:
-  travelpad:
-    description: Use travelpad
-    usage: /travelpad [tp,identify,list,name,delete]
-    aliases: t
+  t:
+    permission: travelpad.basic
+    description: The Travelpad command
+    usage: /travelpad [tp|info|list|name|delete|set]
+    aliases: [travelpad,travelpads,tpads,tpadz, tpad]
+
 permissions:
   travelpad.*:
     description: Give ALL permissions. Same as OP
     # default allowed values - true, false, op, not op or no op? Plugin page is fuzzy
-    default: false
+    default: op
     children:
       travelpad.basic: true
       travelpad.user: true
@@ -44,14 +54,15 @@ permissions:
     default: false
     children:
       travelpad.user: true
+      travelpad.info.others: true
       travelpad.list.others: true
       travelpad.delete.others: true
   travelpad.reload:
     description: Permission to reload config files from disk.
-    default: OP
+    default: op
   travelpad.teleport.free:
     description: Teleport using a travelpad for free.
-    default: OP
+    default: op
   travelpad.teleport.anywhere:
     description: Dont need to be standing on a pad to teleport
-    default: OP
+    default: op

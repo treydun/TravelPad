@@ -1,10 +1,11 @@
+debug: false
 Teleportation Options:
   Require item: false
   Take item: false
-  Item name: REDSTONE
+  Item name: ENDER_EYE
   Charge player: false
   Charge amount: 10.0
-  Optional item: ENDER_EYE
+  Anywhere item: MAGMA_CREAM
   
 Portal Options:
   Charge on creation: false

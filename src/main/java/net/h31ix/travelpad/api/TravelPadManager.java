@@ -1,5 +1,6 @@
 package net.h31ix.travelpad.api;
 
+import net.h31ix.travelpad.TravelPadCommandExecutor;
 import net.h31ix.travelpad.Travelpad;
 import net.h31ix.travelpad.event.TravelPadExpireEvent;
 
@@ -12,6 +13,7 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -25,8 +27,7 @@ public class TravelPadManager {
 
     private List<UnnamedPad> unvList = new ArrayList<>();
 
-    private ArrayList<Pad> publicPads = new ArrayList<>();
-    private List<Pad> adminPads = new ArrayList<>();
+    private List<Pad> publicPads = new ArrayList<>();
 
     public TravelPadManager(Travelpad plugin) {
         this.plugin = plugin;
@@ -75,7 +76,7 @@ public class TravelPadManager {
                 }
             }
         }
-        Arrays.sort(publicPads.toArray());
+        sortPublicPads();
 
     }
 
@@ -125,6 +126,7 @@ public class TravelPadManager {
         } else {
             padsByUUID.put(pad.ownerUUID(), pads);
         }
+        publicPads.remove(pad);
     }
 
     /**
@@ -185,6 +187,16 @@ public class TravelPadManager {
         }
     }
 
+    public void setPublic(Pad pad, boolean setPublic) {
+        pad.setPublic(setPublic);
+        if (setPublic) {
+            publicPads.add(pad);
+        } else {
+            publicPads.remove(pad);
+        }
+        plugin.Meta().saveMeta(pad.getName());
+    }
+
     public String locToString(Location location) {
         return location.getWorld().getName() + "," + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ();
     }
@@ -214,6 +226,7 @@ public class TravelPadManager {
                         if (!e.isCancelled()) {
                             //Remove expired pad from unnamed list and datastore
                             removePad(pad);//Triggers async save
+                            //Should never happen because pads are created normally then converted currently
                             if (!ownerUUID.equals(Travelpad.ADMIN_UUID)) {
                                 final Player owner = Bukkit.getPlayer(pad.OwnerUUID());
                                 if (owner != null && owner.isOnline()) {
@@ -248,7 +261,7 @@ public class TravelPadManager {
     }
 
     public void setOwnerName(Pad pad) {
-        if (!pad.ownerUUID().equals(Travelpad.ADMIN_UUID)) {
+        if (!Travelpad.isAdminPad(pad)) {
             pad.setOwnerName(plugin.getPlayerName(pad.ownerUUID()));
         } else {
             pad.setOwnerName("Admin");
@@ -323,7 +336,7 @@ public class TravelPadManager {
         TravelPadDeleteEvent d = new TravelPadDeleteEvent(pad);
         plugin.getServer().getPluginManager().callEvent(d);
         if (!d.isCancelled()) {
-            plugin.Config().removeMeta(pad.getName()); //TODO: Triggers Async Metasave(should be syncmeta aware?)
+            plugin.Config().removeMeta(pad.getName());
             removePad(pad); //Triggers Async save
             Player player = Bukkit.getPlayer(pad.ownerUUID());
             if (player != null) {
@@ -339,7 +352,6 @@ public class TravelPadManager {
      * @param name Name to be checked
      */
     public boolean padExists(String name) {
-        Travelpad.log("padsByName.contains " + name.toLowerCase() + padsByName.containsKey(name.toLowerCase()));
         return padsByName.containsKey(name.toLowerCase());
     }
 
@@ -371,13 +383,13 @@ public class TravelPadManager {
         }
         List<Pad> list = getPads();
         for (Pad pad : list) {
-            int padX = (int) pad.getLocation().getX();
-            int padY = (int) pad.getLocation().getY();
-            int padZ = (int) pad.getLocation().getZ();
+            int padX = pad.getLocation().getBlockX();
+            int padY = pad.getLocation().getBlockY();
+            int padZ = pad.getLocation().getBlockZ();
             String padWorld = pad.getLocation().getWorld().getName();
-            int locX = (int) location.getX();
-            int locY = (int) location.getY();
-            int locZ = (int) location.getZ();
+            int locX = location.getBlockX();
+            int locY = location.getBlockY();
+            int locZ = location.getBlockZ();
             String locWorld = location.getWorld().getName();
             if (padX <= locX + 2 && padX >= locX - 2 && padY <= locY + 2 && padY >= locY - 2 && padZ <= locZ + 2 && padZ >= locZ - 2 && padWorld.equals(locWorld)) {
                 return pad;
@@ -452,14 +464,11 @@ public class TravelPadManager {
     }
 
     /**
-     * Get all registered pads
+     * Get all registered pads by name
      *
      * @return Set of pads that exists
      */
     public List<Pad> getPads() {
-        Travelpad.log("GETALLPADS BEING CALLED...");
-        //Could use padsByName.values() as well but its a collection
-        //This really needs to be switched to a primitive array...
         List<Pad> allPads = new ArrayList<>();
         for (String key : padsByName.keySet()) {
             allPads.add(padsByName.get(key));
@@ -467,8 +476,42 @@ public class TravelPadManager {
         return allPads;
     }
 
-    public List<Pad> getPublicPads(){
+    public void sortPublicPads(){
+        Collections.sort(publicPads);
+    }
+
+    public List<Pad> getPublicPads() {
         return publicPads;
+    }
+
+    /**
+     * Fetches list of Public Pads then checks every pad to see if owner is Admin or not
+     *
+     * @return list of public player pads
+     */
+    public List<Pad> getPublicPlayerPads() {
+        List<Pad> publicPlayerPads = new ArrayList<>();
+        for (Pad pad : getPublicPads()) {
+            if (!Travelpad.isAdminPad(pad)) {
+                publicPlayerPads.add(pad);
+            }
+        }
+        return publicPlayerPads;
+    }
+
+    /**
+     * Fetches list of Public Pads then checks every pad to see if owner is Admin or not
+     *
+     * @return list of public admin pads
+     */
+    public List<Pad> getPublicAdminPads() {
+        List<Pad> publicAdminPads = new ArrayList<>();
+        for (Pad pad : getPublicPads()) {
+            if (Travelpad.isAdminPad(pad)) {
+                publicAdminPads.add(pad);
+            }
+        }
+        return publicAdminPads;
     }
 
     /**
@@ -482,17 +525,27 @@ public class TravelPadManager {
 
     public boolean isSafe(Location loc, Player player) {
         World world = loc.getWorld();
-        Block block = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 2, loc.getBlockZ());
-        Block block1 = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
-        Block block2 = world.getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
-        if (!(block1.getType() == Material.AIR || block2.getType() == Material.AIR)) {
-            plugin.errorMessage(player, "Suffocated");
+        Block pad = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 2, loc.getBlockZ());
+        Block feet = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
+        Block eyes = world.getBlockAt(loc);
+        if (!(feet.getType() == Material.AIR || eyes.getType() == Material.AIR)) {
+            plugin.errorMessage(player, "Pad Blocked! Feet:" + feet.getType().name() + " Eyes:" + eyes.getType().name());
             return false;//not safe, suffocated
-        } else if (block.getRelative(BlockFace.DOWN).getType() != Material.OBSIDIAN) {
-            plugin.errorMessage(player, "Not a valid tpad?" + block.getRelative(BlockFace.DOWN).getType().toString());
-            player.sendMessage("X:" + block.getX() + " Y:" + block.getY() + " Z:" + block.getZ());
+        } else if (pad.getType() != Material.OBSIDIAN) {
+            plugin.errorMessage(player, "Not a valid travelpad? The block is " + pad.getType().name() + " instead of " + plugin.Config().center.name());
             return false;
+        } else if (pad.getRelative(BlockFace.DOWN).getType() == Material.LAVA) {
+            plugin.message(player, "The block under this pad is lava, this can be hazardous with laggy connections");
         }
         return true; //assume passed
+    }
+
+    public boolean isOwner(CommandSender sender, Pad pad) {
+        if (sender instanceof Player) {
+            if (pad.ownerUUID() == ((Player) sender).getUniqueId()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

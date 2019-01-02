@@ -15,13 +15,18 @@ import net.h31ix.travelpad.api.TravelPadManager;
 import net.h31ix.travelpad.api.UnnamedPad;
 import net.h31ix.travelpad.tasks.SyncMeta;
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.*;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -37,7 +42,10 @@ public class Travelpad extends JavaPlugin {
     private Economy economy;
 
     public static final String PLUGIN_PREFIX_COLOR = ChatColor.DARK_GRAY + "[" + ChatColor.BLUE + "TravelPads" + ChatColor.DARK_GRAY + "] " + ChatColor.GRAY;
-    public static final String PLUGIN_CHAT_HEADER = ChatColor.DARK_GRAY +"        - - - - - - - "+PLUGIN_PREFIX_COLOR+ChatColor.DARK_GRAY+"- - - - - - -";
+    public static final TextComponent PLUGIN_PREFIX_COMPONENT = new TextComponent(TextComponent.fromLegacyText(PLUGIN_PREFIX_COLOR));
+    public static final String PLUGIN_CHAT_HEADER = ChatColor.DARK_GRAY + "        - - - - - - - " + PLUGIN_PREFIX_COLOR + ChatColor.DARK_GRAY + "- - - - - - -";
+    public static final TextComponent PLUGIN_HEADER_COMPONENT = new TextComponent(TextComponent.fromLegacyText(PLUGIN_CHAT_HEADER));
+    public static final TextComponent NEWLINE = new TextComponent("\n");
     public static final UUID ADMIN_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     public static final String DELIMINATOR = "/";
     public static final Pattern isInteger = Pattern.compile("-?\\d+");
@@ -89,7 +97,9 @@ public class Travelpad extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(new TravelPadBlockListener(this), this);
         pm.registerEvents(new TravelPadListener(this), this);
-        getCommand("travelpad").setExecutor(new TravelPadCommandExecutor(this));
+        TravelPadCommandExecutor commandExecutor = new TravelPadCommandExecutor(this);
+        getCommand("t").setExecutor(commandExecutor);
+        getCommand("t").setTabCompleter(commandExecutor);
         syncMeta = new SyncMeta(this);
         syncMetaTaskID = getServer().getScheduler().scheduleSyncRepeatingTask(this, syncMeta, 299L, 500L);
     }
@@ -143,46 +153,50 @@ public class Travelpad extends JavaPlugin {
     }
 
     public void teleport(Player player, Location loc) {
-        boolean tp = true;
-        boolean take = false;
-        boolean found = false;
-        ItemStack s = null;
-        loc.setY(loc.getY() + 1);
         if (!Manager().isSafe(loc, player)) {
-            //player.sendMessage("X:"+loc.getX()+" Y:"+loc.getY()+" Z:"+loc.getZ());
-            player.sendMessage(ChatColor.RED + l.travel_unsafe());
-            tp = false;
+            errorMessage(player, l.travel_unsafe());
+            return;
         }
-        if (config.requireItem) {
-            s = new ItemStack(config.itemType, 1);
-            for (int i = 0; i < player.getInventory().getContents().length; i++) {
-                if (player.getInventory().getContents()[i] != null) {
-                    if (player.getInventory().getContents()[i].getType().name().equals(s.getType().name())) {
-                        if (config.takeItem) {
-                            take = true;
+
+        if (!player.hasPermission("travelpad.teleport.free")) {
+            //If RequireItem is false but takeitem is true its considered the optional charge item
+            if (config.requireItem || config.takeItem) {
+                ItemStack itemToTake = new ItemStack(config.itemType, 1);
+                //If item is required, legacy setting compatibility.
+                if (config.requireItem && player.getInventory().contains(Config().itemType,1)) {
+                    if (config.takeItem) {
+                        player.getInventory().removeItem(itemToTake);
+                        message(player, l.travel_approve_item().replace("%item%", ChatColor.GREEN+itemToTake.getType().name().replaceAll("_"," ")+ChatColor.GRAY));
+                        //player.sendMessage(ChatColor.GOLD + itemToTake.getType().name().toLowerCase().replaceAll("_", " ") + " " + l.travel_approve_item());
+                    } else {
+                        message(player, "You used %item% to teleport");
+                    }
+
+                } else if (config.requireItem) {
+                    errorMessage(player, l.travel_deny_item() + " " + itemToTake.getType().name().toLowerCase().replaceAll("_", " "));
+                    return;
+                }
+
+                //If item is not required but can be taken due to setting (Our new hybrid mode)
+                if (!config.requireItem && (config.chargeTeleport || config.takeItem)) {
+                    if (player.getInventory().contains(Config().itemType,1)) {
+                        player.getInventory().removeItem(itemToTake);
+                        //TODO: fix this ugly message a bit more
+                        message(player, l.travel_approve_item().replace("%item%", ChatColor.GREEN+"(1) "+itemToTake.getType().name().toLowerCase().replaceAll("_"," ")+ChatColor.GRAY));
+                    } else {
+                        //chargeTP(player);
+                        if (config.chargeTeleport) {
+                            if (!charge(player, config.teleportAmount)) {
+                                errorMessage(player, l.travel_deny_money());
+                                return;
+                            } else {
+                                player.sendMessage(ChatColor.GOLD + l.charge_message() + " " + config.teleportAmount);
+                            }
                         }
-                        found = true;
                     }
                 }
             }
-            if (!found) {
-                errorMessage(player, l.travel_deny_item() + " " + s.getType().name().toLowerCase().replaceAll("_", ""));
-                tp = false;
-            }
-        }
-        if (config.chargeTeleport && tp) {
-            if (canAffordTeleport(player)) {
-                chargeTP(player);
-            } else {
-                errorMessage(player, l.travel_deny_money());
-                tp = false;
-            }
-        }
-        if (take && tp) {
-            player.getInventory().removeItem(s);
-            player.sendMessage(ChatColor.GOLD + s.getType().name().toLowerCase().replaceAll("_", "") + " " + l.travel_approve_item());
-        }
-        if (tp) {
+            //TODO: Update
             for (int i = 0; i != 32; i++) {
                 player.getWorld().playEffect(player.getLocation().add(getRandom(), getRandom(), getRandom()), Effect.SMOKE, 3);
             }
@@ -192,7 +206,7 @@ public class Travelpad extends JavaPlugin {
                 @Override
                 public void run() {
                     if (player.isOnline()) {
-                        player.teleport(loc);
+                        player.teleport(loc, PlayerTeleportEvent.TeleportCause.PLUGIN);
                         player.sendMessage(ChatColor.GREEN + l.travel_message());
                         for (int i = 0; i != 32; i++) {
                             player.getWorld().playEffect(loc.add(getRandom(), getRandom(), getRandom()), Effect.SMOKE, 3);
@@ -200,7 +214,6 @@ public class Travelpad extends JavaPlugin {
                     }
                 }
             }, 4);
-
         }
     }
 
@@ -213,54 +226,54 @@ public class Travelpad extends JavaPlugin {
     }
 
     public void chargeCreate(Player player) {
-        if (!player.hasPermission("travelpad.nopay")) {
+        if (!player.hasPermission("travelpad.create.free")) {
             economy.withdrawPlayer(player, config.createAmount);
             player.sendMessage(ChatColor.GOLD + l.charge_message() + " " + config.createAmount);
         }
     }
 
     public void chargeTP(Player player) {
-        if (!player.hasPermission("travelpad.nopay")) {
+        if (!player.hasPermission("travelpad.teleport.free")) {
             economy.withdrawPlayer(player, config.teleportAmount);
             player.sendMessage(ChatColor.GOLD + l.charge_message() + " " + config.teleportAmount);
         }
     }
 
     public void refund(Player player) {
-        if (!player.hasPermission("travelpad.nopay")) {
-            economy.depositPlayer(player, config.deleteAmount);
+        if (!player.hasPermission("travelpad.create.free")) {
+            int padsHas = Manager().getPadsFrom(player.getUniqueId()).size();
+            double refund = config.deleteAmount*(padsHas+1);
+            economy.depositPlayer(player, refund);
             player.sendMessage(ChatColor.GOLD + l.refund_message() + " " + config.deleteAmount);
         }
     }
 
     public void refundNoCreate(Player player) {
-        if (!player.hasPermission("travelpad.nopay")) {
+        if (!player.hasPermission("travelpad.create.free")) {
             economy.depositPlayer(player, config.createAmount);
             player.sendMessage(ChatColor.GOLD + l.refund_message() + " " + config.deleteAmount);
         }
     }
 
     public boolean canAffordTeleport(Player player) {
-        if (player.hasPermission("travelpad.nopay")) {
+        if (player.hasPermission("travelpad.teleport.free")) {
             return true;
         } else if (!config.economyEnabled) {
             return true;
+        } else if (player.getInventory().contains(config.itemType, 1)) {
+            return true;
         }
         double balance = economy.getBalance(player);
-        if (balance >= config.teleportAmount) {
-            return true;
-        } else {
-            return false;
-        }
+        return balance >= config.teleportAmount;
     }
 
     public int getAllowedPads(Player player) {
-        if (player.hasPermission("travelpad.infinite")) {
+        if (player.hasPermission("travelpad.create.infinite")) {
             return -1;
         } else {
             int allowed = 1;
             for (int i = 0; i <= 100; i++) {
-                if (player.hasPermission("travelpad.max." + i)) {
+                if (player.hasPermission("travelpad.create.max." + i)) {
                     allowed = i;
                 }
             }
@@ -281,7 +294,7 @@ public class Travelpad extends JavaPlugin {
     }
 
 
-    public int getPads(Player player) {
+    public int padsPlayerHas(Player player) {
         List<Pad> pads = manager.getPadsFrom(player.getUniqueId());
         int has = 0;
         if (pads != null) {
@@ -291,24 +304,26 @@ public class Travelpad extends JavaPlugin {
     }
 
     public boolean canCreate(Player player) {
-        if (player.hasPermission("travelpad.create") || player.hasPermission("travelpad.admin") || player.isOp()) {
+        if (player.hasPermission("travelpad.create")) {
             List<UnnamedPad> upads = manager.getUnnamedPadsFrom(player.getUniqueId());
             if (!upads.isEmpty()) {
                 errorMessage(player, l.create_deny_waiting());
                 return false;
             }
-            if (config.economyEnabled) {
-                if (!(economy.getBalance(player) >= config.createAmount)) {
-                    errorMessage(player, l.create_deny_money());
-                    return false;
-                }
-            }
-            int allow = getAllowedPads(player);
             List<Pad> pads = manager.getPadsFrom(player.getUniqueId());
             int has = 0;
             if (pads != null) {
                 has = pads.size();
             }
+            if (config.economyEnabled) {
+                double cost = config.createAmount*(has+1);
+                if (!(canAfford(player,cost))) {
+                    errorMessage(player, l.create_deny_money());
+                    return false;
+                }
+            }
+            int allow = getAllowedPads(player);
+
             if (allow < 0 || allow > has) {
                 return true;
             } else {
@@ -348,7 +363,7 @@ public class Travelpad extends JavaPlugin {
     public static String formatLocation(Location loc) {
         if (loc != null) {
             if (loc.getWorld() != null)
-                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " " + loc.getWorld().getName()+" pitch:"+loc.getPitch();
+                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " " + loc.getWorld().getName() + " pitch:" + loc.getPitch();
             else
                 return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " null world.";
         } else {
@@ -361,7 +376,23 @@ public class Travelpad extends JavaPlugin {
     }
 
     public void message(CommandSender sender, String message) {
-        sender.sendMessage(PLUGIN_PREFIX_COLOR + ChatColor.GREEN + message);
+        sender.sendMessage(PLUGIN_PREFIX_COLOR + message);
+    }
+
+    public void message(CommandSender sender, BaseComponent component){
+        if (sender instanceof Player){
+            message((Player)sender, component);
+        } else {
+            message((ConsoleCommandSender)sender,component);
+        }
+    }
+
+    public void message(ConsoleCommandSender sender, BaseComponent component){
+        sender.sendMessage(component.toLegacyText());
+    }
+
+    public void message(Player sender, BaseComponent component){
+        sender.spigot().sendMessage(component);
     }
 
     public void sendLine(CommandSender sender, String message) {
@@ -390,6 +421,32 @@ public class Travelpad extends JavaPlugin {
             }
         }
         return null;
+    }
+
+    public BaseComponent clickablePad(Pad pad){
+        BaseComponent component = new TextComponent(pad.getName());
+        component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,"/t tp "+pad.getName()));
+        ComponentBuilder builder = new ComponentBuilder("Name: ");
+        builder.append(pad.getName());
+        builder.color(ChatColor.GREEN);
+        builder.append(NEWLINE);
+        builder.append("Owner: ");
+        builder.color(ChatColor.WHITE);
+        builder.append(pad.ownerName());
+        builder.color(ChatColor.GREEN);
+        builder.append(NEWLINE);
+        builder.append("Loc: ");
+        builder.color(ChatColor.WHITE);
+        builder.append(formatLocation(pad.getLocation()));
+
+        //TextComponent hoverText = new TextComponent("Name:");
+        //hoverText.addExtra(new ComponentBuilder(pad.getName()).color(ChatColor.GREEN).create());
+        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,builder.create()));
+        return component;
+    }
+
+    public static boolean isAdminPad(Pad pad) {
+        return pad.ownerUUID().equals(ADMIN_UUID);
     }
 }
 
