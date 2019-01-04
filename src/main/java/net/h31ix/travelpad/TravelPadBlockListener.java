@@ -52,7 +52,7 @@ public class TravelPadBlockListener implements Listener {
                     Sign sign = (Sign) bState;
                     if(sign.getLine(0).equals(TRAVELPAD_SIGN_TAG)) {
                         if (plugin.Manager().getPad(sign.getLine(1)) != null) {
-                            event.getPlayer().performCommand("/t tp " + sign.getLine(1));
+                            event.getPlayer().performCommand("t tp " + sign.getLine(1));
                         } else {
                             sign.setLine(0, ChatColor.RED + "[Travelpad]");
                             sign.update(true);

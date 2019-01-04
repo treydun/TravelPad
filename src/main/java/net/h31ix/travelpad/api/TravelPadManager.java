@@ -1,6 +1,5 @@
 package net.h31ix.travelpad.api;
 
-import net.h31ix.travelpad.TravelPadCommandExecutor;
 import net.h31ix.travelpad.Travelpad;
 import net.h31ix.travelpad.event.TravelPadExpireEvent;
 
@@ -478,6 +477,15 @@ public class TravelPadManager {
 
     public void sortPublicPads(){
         Collections.sort(publicPads);
+        //publicPads.sort(new SortByLastUsed());
+        //publicPads.sort(new SortByMostUsed());
+        List<String> padNames = new ArrayList<>(publicPads.size());
+        for(Pad pad:publicPads){
+            Travelpad.log(pad.getName());
+            padNames.add(pad.getName());
+            pad.resetStats();
+        }
+        padNames.sort(String.CASE_INSENSITIVE_ORDER);
     }
 
     public List<Pad> getPublicPads() {

@@ -33,6 +33,13 @@ import java.util.Map;
  * @author atesin#gmail,com
  * </pre>
  */
+/*
+        builder.append('`');
+        TabText tt = new TabText(builder.toString());
+        tt.setPageHeight(10);
+        tt.setTabs(new int[]{12});
+        plugin.sendLine(sender, tt.getPage(1, false));
+*/
 public class TabText{
 
     private int chatHeight;

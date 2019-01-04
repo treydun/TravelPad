@@ -1,16 +1,12 @@
 package net.h31ix.travelpad.api;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-
 import net.h31ix.travelpad.Travelpad;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * <p>
@@ -23,7 +19,7 @@ public class Pad implements Comparable {
     private UUID ownerUUID;
 
     private transient String ownerName = "";
-    private transient Location teleportLocation=null;
+    private transient int usedSince = 0;
 
     private boolean publicPad = false;
     private String description = "";
@@ -56,7 +52,7 @@ public class Pad implements Comparable {
      * @return location  Safe teleport location
      */
     public Location getTeleportLocation() {
-        return new Location(location.getWorld(), location.getX(), location.getY() + 2, location.getZ(),location.getYaw(),0);
+        return new Location(location.getWorld(), location.getX(), location.getY() + 2, location.getZ(), location.getYaw(), 0);
     }
 
     public void setOwnerUUID(UUID ownerUUID) {
@@ -115,13 +111,23 @@ public class Pad implements Comparable {
         return description;
     }
 
-    public void setLastUsed(){
+    public void setLastUsed() {
+        usedSince++;
         System.currentTimeMillis();
     }
 
-    public long getLastUsed(){
+    public void resetStats() {
+        usedSince = 0;
+    }
+
+    public long getLastUsed() {
         return lastUsed;
     }
+
+    public int getUsedSince() {
+        return usedSince;
+    }
+
     public boolean hasMeta() {
         return publicPad || !description.isEmpty() || lastUsed != 0L || prepaidTeleports != 0;
     }
@@ -174,24 +180,24 @@ public class Pad implements Comparable {
         builder.append(Travelpad.formatLocation(location));
         builder.append(" ");
         builder.append(ownerUUID);
-        if(ownerName!=null && !ownerName.isEmpty()) {
+        if (ownerName != null && !ownerName.isEmpty()) {
             builder.append(" ");
             builder.append(ownerName);
         }
-        if(publicPad){
+        if (publicPad) {
             builder.append(" ");
             builder.append("public: true");
         }
-        if(description!=null && !description.isEmpty()) {
+        if (description != null && !description.isEmpty()) {
             builder.append(" ");
             builder.append(description);
         }
-        if(lastUsed!=0){
+        if (lastUsed != 0) {
             builder.append(" ");
             builder.append("last used:");
             builder.append(lastUsed);
         }
-        if(prepaidTeleports!=0){
+        if (prepaidTeleports != 0) {
             builder.append(" ");
             builder.append("prepaid:");
             builder.append(prepaidTeleports);
@@ -248,7 +254,7 @@ public class Pad implements Comparable {
                 UUID ownerID = UUID.fromString(padData[5]);
                 pad = new Pad(location, ownerID, padData[0]);
             } else {
-                Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Failed to load a location with " + padData[1] + " world");
+                Travelpad.error("Failed to load a location with " + padData[1] + " world");
             }
         } else if (padData.length == 7) {
             //Tpads 2.0 Name/X/Y/Z/World/OwnerName/OwnerUUID
@@ -263,7 +269,7 @@ public class Pad implements Comparable {
                     pad = new Pad(location, ownerID, padData[0]);
                     pad.setOwnerName(padData[5]);
                 } else {
-                    Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Failed to load a location with " + padData[4] + " world");
+                    Travelpad.error("Failed to load a location with " + padData[4] + " world");
                 }
             } else {
                 //Tpads 3.1 Name/World/X/Y/Z/NSEW/OwnerUUID
@@ -277,7 +283,7 @@ public class Pad implements Comparable {
                     UUID ownerID = UUID.fromString(padData[6]);
                     pad = new Pad(location, ownerID, padData[0]);
                 } else {
-                    Travelpad.log(Travelpad.PLUGIN_PREFIX_COLOR + ChatColor.RED + "Failed to load a location with " + padData[1] + " world");
+                    Travelpad.error("Failed to load a location with " + padData[1] + " world");
                 }
             }
         } else {
@@ -290,12 +296,64 @@ public class Pad implements Comparable {
     public int compareTo(Object o) {
         if (o instanceof Pad) {
             Pad otherPad = (Pad) o;
-            if (this.lastUsed > otherPad.lastUsed) {
+            //if (this.lastUsed > otherPad.lastUsed) {
+            if (weightedScore(this) > weightedScore(otherPad)) {
                 return 1;
             } else {
                 return -1;
             }
         }
         return 0;
+    }
+
+    public static int weightedScore(Pad pad) {
+        int score = 0;
+        if (pad.lastUsed != 0) {
+            score = new Long(System.currentTimeMillis() - pad.lastUsed).intValue();
+        }
+        if (!Travelpad.isAdminPad(pad)) {
+            Long lastSeen = Travelpad.getLastSeen(pad.ownerUUID);
+            if (lastSeen != -1) {
+                score = score + lastSeen.intValue();
+            } else {
+                //Failed to load players last seen time? needs to be a punishing number, 1000*60*60*24*7 (7 Days) or something
+            }
+        } else {
+            //Need some sort of comprable fixed value for admin pads. A control on the formula. A week like above? Otherwise admins unfairly boost
+        }
+        if (pad.usedSince != 0) {
+            score = score / pad.usedSince;
+        }
+        //Lower is better
+        Travelpad.log(pad.getName() + " score:" + score);
+        return score;
+    }
+}
+
+class SortByLastUsed implements Comparator<Pad> {
+
+    @Override
+    public int compare(Pad pad1, Pad pad2) {
+        if (pad1.getLastUsed() > pad2.getLastUsed()) {
+            return 1;
+        } else if (pad1.getLastUsed() < pad2.getLastUsed()) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+}
+
+class SortByMostUsed implements Comparator<Pad> {
+
+    @Override
+    public int compare(Pad pad1, Pad pad2) {
+        if (pad1.getUsedSince() > pad2.getUsedSince()) {
+            return 1;
+        } else if (pad1.getUsedSince() < pad2.getUsedSince()) {
+            return -1;
+        } else {
+            return 0;
+        }
     }
 }

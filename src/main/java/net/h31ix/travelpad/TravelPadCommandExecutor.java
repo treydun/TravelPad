@@ -1,6 +1,7 @@
 package net.h31ix.travelpad;
 
 import com.buildatnight.legacyutils.Format;
+import com.sun.org.apache.bcel.internal.generic.NEW;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.event.TravelPadTeleportEvent;
 import net.md_5.bungee.api.ChatColor;
@@ -18,6 +19,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.*;
 
 import static net.h31ix.travelpad.Travelpad.NEWLINE;
+import static net.h31ix.travelpad.Travelpad.clickablePad;
 
 public class TravelPadCommandExecutor implements TabExecutor {
     private Travelpad plugin;
@@ -108,24 +110,22 @@ public class TravelPadCommandExecutor implements TabExecutor {
         } else if (args.length == 2) {
             Pad pad = plugin.Manager().getPad(args[1]);
             if (pad != null) {
-                //TODO: This is currently designed to protect 'extra' info, specifically lastUsed variable which is being worked on
-                // could open it up to semi info for players? idk it could fork here
-                if (!sender.hasPermission("travelpad.info.others")) {
-                    if (sender instanceof Player) {
-                        Player player = (Player) sender;
-                        if (pad.ownerUUID() != player.getUniqueId()) {
-                            plugin.errorMessage(sender, "No permission :(");
-                            return true;
-                        }
+                //TODO: TextComponentize
+                if (sender.hasPermission("travelpad.info.others") || plugin.Manager().isOwner(sender, pad)) {
+                    plugin.sendLine(sender, Travelpad.PLUGIN_CHAT_HEADER);
+                    plugin.sendLine(sender, "Name: " + pad.getName());
+                    plugin.sendLine(sender, "Owner: " + pad.ownerName());
+                    plugin.sendLine(sender, "Loc: " + Travelpad.formatLocation(pad.getLocation()));
+                    plugin.sendLine(sender, "Public: " + pad.isPublic());
+                    plugin.sendLine(sender, "Desc: " + pad.getDescription());
+                    if (sender.hasPermission("travelpad.info.all")) {
+                        plugin.sendLine(sender, "LastUsed: " + pad.getLastUsed());
+                        plugin.sendLine(sender, "Weighted Score: " + Pad.weightedScore(pad));
                     }
+                } else {
+                    plugin.errorMessage(sender, "No permission :(");
+                    return true;
                 }
-                plugin.message(sender, Travelpad.PLUGIN_CHAT_HEADER);
-                plugin.sendLine(sender, "Name: " + pad.getName());
-                plugin.sendLine(sender, "Owner: " + pad.ownerName());
-                plugin.sendLine(sender, "Loc: " + Travelpad.formatLocation(pad.getLocation()));
-                plugin.sendLine(sender, "Public: " + pad.isPublic());
-                plugin.sendLine(sender, "Desc: " + pad.getDescription());
-                plugin.sendLine(sender,"LastUsed: "+pad.getLastUsed());
             } else {
                 plugin.errorMessage(sender, "No find pad :(");
             }
@@ -137,8 +137,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
 
     private boolean delete(CommandSender sender, String[] args) {
         if (args.length == 1) {
-            //TODO: Shouldnt this really be a proximal check method? getPadNear()??
-            //I guess falling back to forcing them to delete it by name is a lot safer
+            //TODO: Consider getPadNear() but more dangerous
             if (sender instanceof Player) {
                 Player player = (Player) sender;
                 if (plugin.padsPlayerHas(player) > 1) {
@@ -185,15 +184,19 @@ public class TravelPadCommandExecutor implements TabExecutor {
             if (sender instanceof Player) {
                 Player player = (Player) sender;
                 if (player.hasPermission("travelpad.list")) {
-                    List<Pad> ppads = plugin.Manager().getPadsFrom(player.getUniqueId());
-                    player.sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + "Your telepads are:");
-                    for (Pad p : ppads) {
-                        TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
-                        padName.setColor(ChatColor.GREEN);
-                        padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
-                        padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
-                        player.spigot().sendMessage(padName);
-                    }
+                    List<Pad> pads = plugin.Manager().getPadsFrom(player.getUniqueId());
+                    TextComponent builder = new TextComponent("[Your Pads]");
+                    builder.addExtra(NEWLINE);
+                    builder.addExtra(fancyList(pads));
+                    plugin.message(sender,builder);
+                    //player.sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + "Your telepads are:");
+                    //for (Pad p : ppads) {
+                    //    TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
+                    //    padName.setColor(ChatColor.GREEN);
+                    //    padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
+                     //   padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
+                     //   player.spigot().sendMessage(padName);
+                    //}
                 } else {
                     plugin.errorMessage(player, plugin.Lang().command_deny_permission());
                 }
@@ -208,9 +211,15 @@ public class TravelPadCommandExecutor implements TabExecutor {
                     if (sender.hasPermission("travelpad.list.public")) {
                         List<Pad> pads = plugin.Manager().getPublicPads();
                         if (pads != null && !pads.isEmpty()) {
-                            for (Pad pad : pads) {
-                                sender.sendMessage(Pad.serialize(pad));
-                            }
+                            TextComponent builder = new TextComponent("[Public Pads]");
+                            builder.addExtra(NEWLINE);
+                            builder.addExtra(fancyList(pads));
+                            //for (Pad pad : pads) {
+                            //    builder.addExtra(plugin.clickablePad(pad));
+                            //    builder.addExtra(NEWLINE);
+                                //sender.sendMessage(Pad.serialize(pad));
+                            //}
+                            plugin.message(sender, builder);
                         } else {
                             sender.sendMessage("Unable to find any pads");
                         }
@@ -222,9 +231,15 @@ public class TravelPadCommandExecutor implements TabExecutor {
                     if (sender.hasPermission("travelpad.list.all")) {
                         List<Pad> pads = plugin.Manager().getPads();
                         if (pads != null && !pads.isEmpty()) {
-                            for (Pad p : pads) {
-                                sender.sendMessage(Pad.serialize(p));
-                            }
+                            TextComponent builder = new TextComponent("[All Pads]");
+                            builder.addExtra(NEWLINE);
+                            builder.addExtra(fancyList(pads));
+                            //for (Pad pad : pads) {
+                            //    builder.addExtra(plugin.clickablePad(pad));
+                            //    builder.addExtra(NEWLINE);
+                                //sender.sendMessage(Pad.serialize(pad));
+                            //}
+                            plugin.message(sender, builder);
                         } else {
                             sender.sendMessage("Unable to find any pads");
                         }
@@ -236,21 +251,25 @@ public class TravelPadCommandExecutor implements TabExecutor {
                     if (sender.hasPermission("travelpad.list.admin")) {
                         List<Pad> pads = plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID);
                         if (pads != null && !pads.isEmpty()) {
-                            plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
-                            TextComponent component = new TextComponent();
-                            for (Pad p : pads) {
-                                TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
-                                padName.setColor(ChatColor.GREEN);
-                                padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
-                                padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
-                                component.addExtra(padName);
-                                component.addExtra(NEWLINE);
-                            }
-                            if (sender instanceof Player) {
-                                ((Player) sender).spigot().sendMessage(component);
-                            } else {
-                                sender.sendMessage(component.toLegacyText());
-                            }
+                            TextComponent builder = new TextComponent("[Admin Pads]");
+                            builder.addExtra(NEWLINE);
+                            builder.addExtra(fancyList(pads));
+                            plugin.message(sender, builder);
+                            //plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
+                            //TextComponent component = new TextComponent();
+                            //for (Pad p : pads) {                                  TODO: Remember first letter caps?
+                            //    TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
+                            //    padName.setColor(ChatColor.GREEN);
+                            //    padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
+                            //    padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
+                            //    component.addExtra(padName);
+                            //    component.addExtra(NEWLINE);
+                            //}
+                            //if (sender instanceof Player) {
+                            //    ((Player) sender).spigot().sendMessage(component);
+                            //} else {
+                            //    sender.sendMessage(component.toLegacyText());
+                            //}
                         } else {
                             plugin.errorMessage(sender, plugin.Lang().list_no_pads());
                         }
@@ -262,23 +281,28 @@ public class TravelPadCommandExecutor implements TabExecutor {
                     if (sender.hasPermission("travelpad.list.others")) {
                         UUID ownerID = plugin.getPlayerUUIDbyName(args[1]);
                         if (ownerID != null) {
-                            List<Pad> ppads = plugin.Manager().getPadsFrom(ownerID);
-                            if (ppads != null && !ppads.isEmpty()) {
-                                plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
-                                TextComponent component = new TextComponent();
-                                for (Pad p : ppads) {
-                                    TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
-                                    padName.setColor(ChatColor.GREEN);
-                                    padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
-                                    padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
-                                    component.addExtra(padName);
-                                    component.addExtra(NEWLINE);
-                                }
-                                if (sender instanceof Player) {
-                                    ((Player) sender).spigot().sendMessage(component);
-                                } else {
-                                    sender.sendMessage(component.toLegacyText());
-                                }
+                            List<Pad> pads = plugin.Manager().getPadsFrom(ownerID);
+                            if (pads != null && !pads.isEmpty()) {
+                                TextComponent builder = new TextComponent("[");
+                                builder.addExtra(Bukkit.getPlayer(ownerID).getName());
+                                builder.addExtra("'s Pads]");
+                                builder.addExtra(fancyList(pads));
+                                plugin.message(sender,builder);
+                                //plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
+                                //TextComponent component = new TextComponent();
+                                //for (Pad p : ppads) {
+                                //    TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
+                                //    padName.setColor(ChatColor.GREEN);
+                                //    padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
+                                //    padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
+                                //    component.addExtra(padName);
+                                //    component.addExtra(NEWLINE);
+                                //}
+                                //if (sender instanceof Player) {
+                                //    ((Player) sender).spigot().sendMessage(component);
+                                //} else {
+                                //    sender.sendMessage(component.toLegacyText());
+                                //}
                             } else {
                                 plugin.errorMessage(sender, plugin.Lang().list_no_pads() + args[1]);
                             }
@@ -360,7 +384,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                 TravelPadTeleportEvent e = new TravelPadTeleportEvent(destinationPad, originPad, player);
                                 plugin.getServer().getPluginManager().callEvent(e);
                                 if (!e.isCancelled()) {
-                                    if(destinationPad.isPublic()) {
+                                    if (destinationPad.isPublic() && !plugin.Manager().isOwner(sender, destinationPad)) {
                                         destinationPad.setLastUsed();
                                         plugin.Meta().saveMeta(destinationPad.getName());
                                     }
@@ -508,9 +532,6 @@ public class TravelPadCommandExecutor implements TabExecutor {
     private long cacheTime = 0;
     private TextComponent publicPadMainPage = new TextComponent();
 
-    //private List<Pad> playerPublicCache = new ArrayList<>();
-    //private List<Pad> adminPublicCache = new ArrayList<>();
-
     private boolean publicPadList(CommandSender sender) {
         if ((System.currentTimeMillis() - cacheTime) > (1000 * 60 * 5)) {
             Travelpad.log("Refreshing public pad cache");
@@ -528,7 +549,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                 }
                 i++;
                 Pad pad = adminPadIterator.next();
-                BaseComponent component = plugin.clickablePad(pad);
+                BaseComponent component = Travelpad.clickablePad(pad);
                 component.addExtra(" ");
                 component.addExtra(pad.getDescription());
                 publicPadMainPage.addExtra(component);
@@ -548,7 +569,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                 }
                 i2++;
                 Pad pad = playerPublicPadIterator.next();
-                BaseComponent component = plugin.clickablePad(pad);
+                BaseComponent component = Travelpad.clickablePad(pad);
                 component.addExtra(" ");
                 component.addExtra(pad.getDescription());
                 publicPadMainPage.addExtra(component);
@@ -557,39 +578,30 @@ public class TravelPadCommandExecutor implements TabExecutor {
             cacheTime = System.currentTimeMillis();
         }
         plugin.message(sender, publicPadMainPage);
-
-        /*
-        StringBuilder builder = new StringBuilder('\n');
-        builder.append('\n');
-        builder.append(" [Admin Pads]");
-        builder.append('\n');
-        //Crap need clickable links, no builder here... Prob individial messages :S
-        for (Pad adminPad : plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID)) {
-            builder.append(adminPad.getName());
-            if (adminPad.getDescription() != null && !adminPad.getDescription().isEmpty()) {
-                builder.append('`');
-                builder.append(adminPad.getDescription());
-            }
-            builder.append('\n');
-        }
-        builder.append('\n');
-        builder.append(" [Public Pads]");
-        builder.append('\n');
-        for (Pad publicPad : plugin.Manager().getPublicPads()) {
-            builder.append(publicPad.getName());
-            if (publicPad.getDescription() != null && !publicPad.getDescription().isEmpty()) {
-                builder.append('`');
-                builder.append(publicPad.getDescription());
-            }
-            builder.append('\n');
-        }
-
-        TabText tt = new TabText(builder.toString());
-        tt.setPageHeight(10);
-        tt.setTabs(new int[]{12});
-        plugin.sendLine(sender, tt.getPage(1, false));
-        */
         return true;
+    }
+
+    private TextComponent fancyList(List<Pad> pads) {
+        TextComponent builder = new TextComponent();
+        for (Pad pad : pads) {
+            TextComponent padName = new TextComponent("(");
+            padName.setColor(ChatColor.DARK_GRAY);
+            padName.addExtra(clickablePad(pad).setColor(ChatColor.GREEN));
+            //padName.addExtra(pad.getName());
+            padName.setColor(ChatColor.GREEN);
+            padName.addExtra(")");
+            padName.setColor(ChatColor.DARK_GRAY);
+            builder.addExtra(padName);
+            if (!pad.getDescription().isEmpty()) {
+                //TODO: ADD Padding from TabText
+                TextComponent component = new TextComponent("        ");
+                component.addExtra(pad.getDescription());
+                component.setColor(ChatColor.GRAY);
+                builder.addExtra(component);
+            }
+            builder.addExtra(NEWLINE);
+        }
+        return builder;
     }
 
     private boolean showHelp(CommandSender sender) {

@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import com.buildatnight.unity.Unity;
+import com.sun.org.apache.bcel.internal.generic.NEW;
 import net.h31ix.travelpad.api.Configuration;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.api.TravelPadManager;
@@ -360,17 +361,6 @@ public class Travelpad extends JavaPlugin {
         Bukkit.getLogger().severe(PLUGIN_PREFIX_COLOR + " " + str);
     }
 
-    public static String formatLocation(Location loc) {
-        if (loc != null) {
-            if (loc.getWorld() != null)
-                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " " + loc.getWorld().getName() + " pitch:" + loc.getPitch();
-            else
-                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " null world.";
-        } else {
-            return "Location is null, File corruption may ensue";
-        }
-    }
-
     public void errorMessage(CommandSender sender, String message) {
         sender.sendMessage(PLUGIN_PREFIX_COLOR + ChatColor.RED + message);
     }
@@ -423,7 +413,15 @@ public class Travelpad extends JavaPlugin {
         return null;
     }
 
-    public BaseComponent clickablePad(Pad pad){
+    public static long getLastSeen(UUID playersUUID) {
+        OfflinePlayer oPlayer = Bukkit.getOfflinePlayer(playersUUID);
+        if(oPlayer!=null){
+           return System.currentTimeMillis()-oPlayer.getLastPlayed();
+        }
+        return -1;
+    }
+
+    public static BaseComponent clickablePad(Pad pad){
         BaseComponent component = new TextComponent(pad.getName());
         component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,"/t tp "+pad.getName()));
         ComponentBuilder builder = new ComponentBuilder("Name: ");
@@ -437,14 +435,48 @@ public class Travelpad extends JavaPlugin {
         builder.append(NEWLINE);
         builder.append("Loc: ");
         builder.color(ChatColor.WHITE);
-        builder.append(formatLocation(pad.getLocation()));
-
-        //TextComponent hoverText = new TextComponent("Name:");
-        //hoverText.addExtra(new ComponentBuilder(pad.getName()).color(ChatColor.GREEN).create());
+        builder.append(fancyLocation(pad.getLocation()));
+        builder.color(ChatColor.GREEN);
+        /*
+        if(pad.isPublic()){
+            builder.append("Public: ");
+            builder.color(ChatColor.WHITE);
+            builder.append("True");
+            builder.color(ChatColor.GREEN);
+        }
+        */
         component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,builder.create()));
         return component;
     }
 
+    public static String formatLocation(Location loc) {
+        if (loc != null) {
+            if (loc.getWorld() != null)
+                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " " + loc.getWorld().getName() + " pitch:" + loc.getPitch();
+            else
+                return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " null world.";
+        } else {
+            return "Location is null, File corruption may ensue";
+        }
+    }
+
+    public static TextComponent fancyLocation(Location loc){
+        TextComponent component = new TextComponent(String.valueOf(loc.getBlockX()));
+        component.addExtra(" ");
+        component.addExtra(String.valueOf(loc.getBlockY()));
+        component.addExtra(" ");
+        component.addExtra(String.valueOf(loc.getBlockZ()));
+        component.addExtra(" ");
+        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,new ComponentBuilder("World: ")
+                .append(loc.getWorld().getName())
+                .append(NEWLINE)
+                .append("Pitch: ")
+                .append(String.valueOf(loc.getPitch()))
+                .append(NEWLINE)
+                .append("Yaw: ")
+                .append(String.valueOf(loc.getYaw())).create()));
+        return component;
+    }
     public static boolean isAdminPad(Pad pad) {
         return pad.ownerUUID().equals(ADMIN_UUID);
     }
