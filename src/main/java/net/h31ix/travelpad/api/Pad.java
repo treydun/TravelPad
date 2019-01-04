@@ -128,6 +128,22 @@ public class Pad implements Comparable {
         return usedSince;
     }
 
+    public void setPrepaid(int prepaid){
+        this.prepaidTeleports=prepaid;
+    }
+
+    public boolean chargePrepaid(){
+        if(prepaidTeleports>=1){
+            prepaidTeleports--;
+            return true;
+        }
+        return false;
+    }
+
+    public int prepaidsLeft(){
+        return prepaidTeleports;
+    }
+
     public boolean hasMeta() {
         return publicPad || !description.isEmpty() || lastUsed != 0L || prepaidTeleports != 0;
     }

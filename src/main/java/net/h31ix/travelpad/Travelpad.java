@@ -8,8 +8,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import com.buildatnight.unity.Unity;
-import com.sun.org.apache.bcel.internal.generic.NEW;
 import net.h31ix.travelpad.api.Configuration;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.api.TravelPadManager;
@@ -22,10 +20,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
@@ -159,7 +155,7 @@ public class Travelpad extends JavaPlugin {
             return;
         }
 
-        if (!player.hasPermission("travelpad.teleport.free")) {
+        if (!player.hasPermission("travelpad.teleport.free") || !pad.chargePrepaid()) {
             //If RequireItem is false but takeitem is true its considered the optional charge item
             if (config.requireItem || config.takeItem) {
                 ItemStack itemToTake = new ItemStack(config.itemType, 1);
@@ -404,7 +400,7 @@ public class Travelpad extends JavaPlugin {
         } else {
             OfflinePlayer pl = Bukkit.getPlayer(playerName);
             if (pl == null) {
-                pl = Bukkit.getOfflinePlayer(Unity.getUnityHandle().getCache().fetchUUID(playerName));
+                //pl = Bukkit.getOfflinePlayer(Unity.getUnityHandle().getCache().fetchUUID(playerName));
             }
             if (pl != null) {
                 return pl.getUniqueId();

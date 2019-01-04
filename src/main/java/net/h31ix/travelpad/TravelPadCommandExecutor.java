@@ -1,7 +1,5 @@
 package net.h31ix.travelpad;
 
-import com.buildatnight.legacyutils.Format;
-import com.sun.org.apache.bcel.internal.generic.NEW;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.event.TravelPadTeleportEvent;
 import net.md_5.bungee.api.ChatColor;
@@ -118,6 +116,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                     plugin.sendLine(sender, "Loc: " + Travelpad.formatLocation(pad.getLocation()));
                     plugin.sendLine(sender, "Public: " + pad.isPublic());
                     plugin.sendLine(sender, "Desc: " + pad.getDescription());
+                    plugin.sendLine(sender, "Prepaid: "+pad.prepaidsLeft());
                     if (sender.hasPermission("travelpad.info.all")) {
                         plugin.sendLine(sender, "LastUsed: " + pad.getLastUsed());
                         plugin.sendLine(sender, "Weighted Score: " + Pad.weightedScore(pad));
@@ -380,7 +379,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                 plugin.errorMessage(player, "You are already standing at that pad?");
                                 return true;
                             }
-                            if (plugin.canAffordTeleport(player)) {
+                            if (destinationPad.prepaidsLeft()>0 || plugin.canAffordTeleport(player)) {
                                 TravelPadTeleportEvent e = new TravelPadTeleportEvent(destinationPad, originPad, player);
                                 plugin.getServer().getPluginManager().callEvent(e);
                                 if (!e.isCancelled()) {
@@ -433,9 +432,13 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                 stacks--;
                             }
                             player.getInventory().remove(new ItemStack(Material.ENDER_EYE, remainder));
-                            //TODO: charge success, update pad prepaids to reflect new balance (make sure to add to, not replace)
+                            pad.setPrepaid(pad.prepaidsLeft()+prepaid);
+                            plugin.Meta().saveMeta(pad.getName());
+                            plugin.message(sender, pad.getName()+" now  has "+pad.prepaidsLeft()+" teleports prepaid");
                         } else if (plugin.charge(player, prepaid * plugin.Config().teleportAmount)) {
-                            //TODO: Charge success, update pad prepaids to reflect new balance (make sure to add to, not replace)
+                            pad.setPrepaid(pad.prepaidsLeft()+prepaid);
+                            plugin.Meta().saveMeta(pad.getName());
+                            plugin.message(sender, pad.getName()+" now  has "+pad.prepaidsLeft()+" teleports prepaid");
                         } else {
                             plugin.errorMessage(player, plugin.Lang().create_deny_money());
                         }
@@ -448,6 +451,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
             } else {
                 plugin.errorMessage(sender, "NO_PAD_BY_THAT_NAME");
             }
+            return true;
         }
         //Invalid number of arguments error message
         return false;
@@ -555,9 +559,6 @@ public class TravelPadCommandExecutor implements TabExecutor {
                 publicPadMainPage.addExtra(component);
                 publicPadMainPage.addExtra(NEWLINE);
             }
-            //TODO:
-            // Cleanup this method
-            // Fix FormatLocation in padinfo for clickablePad(), its not good for tooltips
             publicPadMainPage.addExtra(" [Top Player Pads]");
             publicPadMainPage.addExtra(NEWLINE);
 
@@ -582,26 +583,24 @@ public class TravelPadCommandExecutor implements TabExecutor {
     }
 
     private TextComponent fancyList(List<Pad> pads) {
-        TextComponent builder = new TextComponent();
+        ComponentBuilder builder = new ComponentBuilder("");
         for (Pad pad : pads) {
-            TextComponent padName = new TextComponent("(");
-            padName.setColor(ChatColor.DARK_GRAY);
-            padName.addExtra(clickablePad(pad).setColor(ChatColor.GREEN));
-            //padName.addExtra(pad.getName());
-            padName.setColor(ChatColor.GREEN);
-            padName.addExtra(")");
-            padName.setColor(ChatColor.DARK_GRAY);
-            builder.addExtra(padName);
+            builder.append("(");
+            builder.color(ChatColor.DARK_GRAY);
+            builder.append(clickablePad(pad));
+            builder.color(ChatColor.GREEN);
+            builder.append(")");
+            builder.color(ChatColor.DARK_GRAY);
             if (!pad.getDescription().isEmpty()) {
                 //TODO: ADD Padding from TabText
                 TextComponent component = new TextComponent("        ");
                 component.addExtra(pad.getDescription());
                 component.setColor(ChatColor.GRAY);
-                builder.addExtra(component);
+                builder.append(component);
             }
-            builder.addExtra(NEWLINE);
+            builder.append(NEWLINE);
         }
-        return builder;
+        return new TextComponent(builder.create());
     }
 
     private boolean showHelp(CommandSender sender) {
