@@ -11,7 +11,6 @@ website: https://www.buildatnight.com/travelpad
 main: net.h31ix.travelpad.Travelpad
 api-version: 1.13
 softdepend: [Vault]
-depend: [Unity]
 startup: postworld
 #Legacy Tags
 #url: http://H31IX.NET/ (Offline)
