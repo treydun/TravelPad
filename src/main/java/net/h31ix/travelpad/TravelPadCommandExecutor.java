@@ -1,5 +1,6 @@
 package net.h31ix.travelpad;
 
+import com.buildatnight.travelpad.cl.netgamer.TabText;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.event.TravelPadTeleportEvent;
 import net.md_5.bungee.api.ChatColor;
@@ -13,6 +14,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.metadata.FixedMetadataValue;
 
 import java.util.*;
 
@@ -388,6 +390,8 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                         plugin.Meta().saveMeta(destinationPad.getName());
                                     }
                                     Location loc = e.getTo().getTeleportLocation();
+                                    if(destinationPad.chargePrepaid())
+                                        player.setMetadata("prepaid", new FixedMetadataValue(plugin, true));
                                     plugin.teleport(player, loc);
                                 }
                             } else {
@@ -579,27 +583,68 @@ public class TravelPadCommandExecutor implements TabExecutor {
             cacheTime = System.currentTimeMillis();
         }
         plugin.message(sender, publicPadMainPage);
+        StringBuilder builder=new StringBuilder();
+        //builder.append('\n');
+        for(Pad pad:plugin.Manager().getPublicPads()){
+            builder.append(pad.getName());
+            builder.append('`');
+            builder.append(pad.getDescription());
+            builder.append('\n');
+        }
+        TabText tt = new TabText(builder.toString());
+        tt.setPageHeight(30);
+        tt.setTabs(new int[]{16});
+        if(sender instanceof Player){
+            plugin.sendLine(sender, tt.getPage(1, false));
+        } else {
+            plugin.sendLine(sender, tt.getPage(1, true));
+        }
+
         return true;
     }
 
-    private TextComponent fancyList(List<Pad> pads) {
-        ComponentBuilder builder = new ComponentBuilder("");
-        for (Pad pad : pads) {
-            builder.append("(");
-            builder.color(ChatColor.DARK_GRAY);
-            builder.append(clickablePad(pad));
-            builder.color(ChatColor.GREEN);
-            builder.append(")");
-            builder.color(ChatColor.DARK_GRAY);
-            if (!pad.getDescription().isEmpty()) {
-                //TODO: ADD Padding from TabText
-                TextComponent component = new TextComponent("        ");
-                component.addExtra(pad.getDescription());
-                component.setColor(ChatColor.GRAY);
-                builder.append(component);
+    private BaseComponent fancyList(List<Pad> pads) {
+        /*
+        BaseComponent[] padList = fancyList(pads);
+        if(padList.length>10){
+            //TODO: Paginate
+            for (int i=0; i<=10; i++){
+                builder.addExtra(padList[i]);
             }
-            builder.append(NEWLINE);
+        } else {
+            builder.addExtra(new TextComponent(padList));
         }
+        */
+        BaseComponent[] padsList = new BaseComponent[pads.size()];
+        int index = 0;
+        for(Iterator<Pad> paderator = pads.iterator(); paderator.hasNext();){
+            Pad pad = paderator.next();
+            padsList[index] = getFancyLine(pad);
+            index++;
+            if(index>10){
+                //Kickout to prevent overflows
+                break;
+            }
+        }
+        return new TextComponent(padsList);
+    }
+
+    private BaseComponent getFancyLine(Pad pad){
+        ComponentBuilder builder = new ComponentBuilder("");
+        builder.append("(");
+        builder.color(ChatColor.DARK_GRAY);
+        builder.append(clickablePad(pad));
+        builder.color(ChatColor.GREEN);
+        builder.append(")");
+        builder.color(ChatColor.DARK_GRAY);
+        if (!pad.getDescription().isEmpty()) {
+            //TODO: ADD Padding from TabText
+            TextComponent component = new TextComponent("        ");
+            component.addExtra(pad.getDescription());
+            component.setColor(ChatColor.GRAY);
+            builder.append(component);
+        }
+        builder.append(NEWLINE);
         return new TextComponent(builder.create());
     }
 

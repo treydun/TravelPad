@@ -114,7 +114,7 @@ public class TravelPadBlockListener implements Listener {
                 if (event.getPlayer().hasPermission("travelpad.delete")) {
                     //TODO: should be travelpad.admin?
                     // travelpad.delete.other?
-                    if (plugin.Config().anyBreak || event.getPlayer().hasPermission("travelpad.delete.any") || pad.ownerUUID().equals(event.getPlayer().getUniqueId())) {
+                    if (plugin.Config().anyBreak || plugin.Manager().isOwner(event.getPlayer(), pad) || event.getPlayer().hasPermission("travelpad.delete.any")) {
                         plugin.message(event.getPlayer(), plugin.Lang().delete_approve());
                         plugin.delete(pad);
                     } else {

@@ -15,6 +15,7 @@ import net.h31ix.travelpad.api.UnnamedPad;
 import net.h31ix.travelpad.tasks.SyncMeta;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.*;
+import net.md_5.bungee.chat.ComponentSerializer;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Effect;
@@ -155,20 +156,23 @@ public class Travelpad extends JavaPlugin {
             return;
         }
 
-        if (!player.hasPermission("travelpad.teleport.free") || !pad.chargePrepaid()) {
+        if (player.hasMetadata("prepaid")) {
+            player.removeMetadata("prepaid", this);
+            //TODO: STUB - finish this
+            player.sendMessage("TP'd for free!");
+        } else if (!player.hasPermission("travelpad.teleport.free")) {
             //If RequireItem is false but takeitem is true its considered the optional charge item
             if (config.requireItem || config.takeItem) {
                 ItemStack itemToTake = new ItemStack(config.itemType, 1);
                 //If item is required, legacy setting compatibility.
-                if (config.requireItem && player.getInventory().contains(Config().itemType,1)) {
+                if (config.requireItem && player.getInventory().contains(Config().itemType, 1)) {
                     if (config.takeItem) {
                         player.getInventory().removeItem(itemToTake);
-                        message(player, l.travel_approve_item().replace("%item%", ChatColor.GREEN+itemToTake.getType().name().replaceAll("_"," ")+ChatColor.GRAY));
+                        message(player, l.travel_approve_item().replace("%item%", ChatColor.GREEN + itemToTake.getType().name().replaceAll("_", " ") + ChatColor.GRAY));
                         //player.sendMessage(ChatColor.GOLD + itemToTake.getType().name().toLowerCase().replaceAll("_", " ") + " " + l.travel_approve_item());
                     } else {
                         message(player, "You used %item% to teleport");
                     }
-
                 } else if (config.requireItem) {
                     errorMessage(player, l.travel_deny_item() + " " + itemToTake.getType().name().toLowerCase().replaceAll("_", " "));
                     return;
@@ -176,10 +180,10 @@ public class Travelpad extends JavaPlugin {
 
                 //If item is not required but can be taken due to setting (Our new hybrid mode)
                 if (!config.requireItem && (config.chargeTeleport || config.takeItem)) {
-                    if (player.getInventory().contains(Config().itemType,1)) {
+                    if (player.getInventory().contains(Config().itemType, 1)) {
                         player.getInventory().removeItem(itemToTake);
                         //TODO: fix this ugly message a bit more
-                        message(player, l.travel_approve_item().replace("%item%", ChatColor.GREEN+"(1) "+itemToTake.getType().name().toLowerCase().replaceAll("_"," ")+ChatColor.GRAY));
+                        message(player, l.travel_approve_item().replace("%item%", ChatColor.GREEN + "(1) " + itemToTake.getType().name().toLowerCase().replaceAll("_", " ") + ChatColor.GRAY));
                     } else {
                         //chargeTP(player);
                         if (config.chargeTeleport) {
@@ -239,7 +243,7 @@ public class Travelpad extends JavaPlugin {
     public void refund(Player player) {
         if (!player.hasPermission("travelpad.create.free")) {
             int padsHas = Manager().getPadsFrom(player.getUniqueId()).size();
-            double refund = config.deleteAmount*(padsHas+1);
+            double refund = config.deleteAmount * (padsHas + 1);
             economy.depositPlayer(player, refund);
             player.sendMessage(ChatColor.GOLD + l.refund_message() + " " + config.deleteAmount);
         }
@@ -313,8 +317,8 @@ public class Travelpad extends JavaPlugin {
                 has = pads.size();
             }
             if (config.economyEnabled) {
-                double cost = config.createAmount*(has+1);
-                if (!(canAfford(player,cost))) {
+                double cost = config.createAmount * (has + 1);
+                if (!(canAfford(player, cost))) {
                     errorMessage(player, l.create_deny_money());
                     return false;
                 }
@@ -365,19 +369,23 @@ public class Travelpad extends JavaPlugin {
         sender.sendMessage(PLUGIN_PREFIX_COLOR + message);
     }
 
-    public void message(CommandSender sender, BaseComponent component){
-        if (sender instanceof Player){
-            message((Player)sender, component);
+    public void message(CommandSender sender, BaseComponent component) {
+        if(ComponentSerializer.toString(component).length()>32000){
+            error("MESSAGE OVERFLOW! This method MUST be updated now!");
+            return;
+        }
+        if (sender instanceof Player) {
+            message((Player) sender, component);
         } else {
-            message((ConsoleCommandSender)sender,component);
+            message((ConsoleCommandSender) sender, component);
         }
     }
 
-    public void message(ConsoleCommandSender sender, BaseComponent component){
+    public void message(ConsoleCommandSender sender, BaseComponent component) {
         sender.sendMessage(component.toLegacyText());
     }
 
-    public void message(Player sender, BaseComponent component){
+    public void message(Player sender, BaseComponent component) {
         sender.spigot().sendMessage(component);
     }
 
@@ -390,6 +398,7 @@ public class Travelpad extends JavaPlugin {
         if (oPlayer != null) {
             return oPlayer.getName();
         }
+        error("Failed to match " + playersUUID + " to a known player seen on the server? Serious failure");
         //TODO: Fallback to unity next (allow it to MjAPI?)
         return null;
     }
@@ -400,6 +409,7 @@ public class Travelpad extends JavaPlugin {
         } else {
             OfflinePlayer pl = Bukkit.getPlayer(playerName);
             if (pl == null) {
+                error("Failed to match " + playerName + " to a UUID via Bukkits internal method. Failover to unity?");
                 //pl = Bukkit.getOfflinePlayer(Unity.getUnityHandle().getCache().fetchUUID(playerName));
             }
             if (pl != null) {
@@ -410,16 +420,31 @@ public class Travelpad extends JavaPlugin {
     }
 
     public static long getLastSeen(UUID playersUUID) {
-        OfflinePlayer oPlayer = Bukkit.getOfflinePlayer(playersUUID);
-        if(oPlayer!=null){
-           return System.currentTimeMillis()-oPlayer.getLastPlayed();
+        if (playersUUID.equals(ADMIN_UUID)) {
+            //Admins /seen time is fixed to 24 hours ago.
+            return 1000 * 60 * 60 * 24;
+        } else {
+            OfflinePlayer oPlayer = Bukkit.getOfflinePlayer(playersUUID);
+            if (oPlayer != null) {
+                return System.currentTimeMillis() - oPlayer.getLastPlayed();
+            }
         }
         return -1;
     }
 
-    public static BaseComponent clickablePad(Pad pad){
+    public static BaseComponent clickablePad(Pad pad) {
+        return clickablePad(pad, true);
+    }
+
+    public static BaseComponent clickablePad(Pad pad, boolean tooltip) {
         BaseComponent component = new TextComponent(pad.getName());
-        component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,"/t tp "+pad.getName()));
+        component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + pad.getName()));
+        if (tooltip)
+            component.setHoverEvent(padTooltip(pad));
+        return component;
+    }
+
+    public static HoverEvent padTooltip(Pad pad) {
         ComponentBuilder builder = new ComponentBuilder("Name: ");
         builder.append(pad.getName());
         builder.color(ChatColor.GREEN);
@@ -433,16 +458,16 @@ public class Travelpad extends JavaPlugin {
         builder.color(ChatColor.WHITE);
         builder.append(fancyLocation(pad.getLocation()));
         builder.color(ChatColor.GREEN);
-        /*
-        if(pad.isPublic()){
+        if (pad.isPublic()) {
             builder.append("Public: ");
             builder.color(ChatColor.WHITE);
             builder.append("True");
             builder.color(ChatColor.GREEN);
         }
-        */
-        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,builder.create()));
-        return component;
+        if (pad.prepaidsLeft() > 0) {
+            builder.append(" ~ Free ~");
+        }
+        return new HoverEvent(HoverEvent.Action.SHOW_TEXT, builder.create());
     }
 
     public static String formatLocation(Location loc) {
@@ -456,14 +481,13 @@ public class Travelpad extends JavaPlugin {
         }
     }
 
-    public static TextComponent fancyLocation(Location loc){
+    public static TextComponent fancyLocation(Location loc) {
         TextComponent component = new TextComponent(String.valueOf(loc.getBlockX()));
         component.addExtra(" ");
         component.addExtra(String.valueOf(loc.getBlockY()));
         component.addExtra(" ");
         component.addExtra(String.valueOf(loc.getBlockZ()));
-        component.addExtra(" ");
-        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,new ComponentBuilder("World: ")
+        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("World: ")
                 .append(loc.getWorld().getName())
                 .append(NEWLINE)
                 .append("Pitch: ")
@@ -473,6 +497,7 @@ public class Travelpad extends JavaPlugin {
                 .append(String.valueOf(loc.getYaw())).create()));
         return component;
     }
+
     public static boolean isAdminPad(Pad pad) {
         return pad.ownerUUID().equals(ADMIN_UUID);
     }

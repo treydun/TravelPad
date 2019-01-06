@@ -128,19 +128,19 @@ public class Pad implements Comparable {
         return usedSince;
     }
 
-    public void setPrepaid(int prepaid){
-        this.prepaidTeleports=prepaid;
+    public void setPrepaid(int prepaid) {
+        this.prepaidTeleports = prepaid;
     }
 
-    public boolean chargePrepaid(){
-        if(prepaidTeleports>=1){
+    public boolean chargePrepaid() {
+        if (prepaidTeleports >= 1) {
             prepaidTeleports--;
             return true;
         }
         return false;
     }
 
-    public int prepaidsLeft(){
+    public int prepaidsLeft() {
         return prepaidTeleports;
     }
 
@@ -327,16 +327,16 @@ public class Pad implements Comparable {
         if (pad.lastUsed != 0) {
             score = new Long(System.currentTimeMillis() - pad.lastUsed).intValue();
         }
-        if (!Travelpad.isAdminPad(pad)) {
-            Long lastSeen = Travelpad.getLastSeen(pad.ownerUUID);
-            if (lastSeen != -1) {
-                score = score + lastSeen.intValue();
-            } else {
-                //Failed to load players last seen time? needs to be a punishing number, 1000*60*60*24*7 (7 Days) or something
-            }
+
+        Long lastSeen = Travelpad.getLastSeen(pad.ownerUUID);
+        if (lastSeen != -1) {
+            score = score + lastSeen.intValue();
         } else {
-            //Need some sort of comprable fixed value for admin pads. A control on the formula. A week like above? Otherwise admins unfairly boost
+            score = score + (1000*60*60*24*7);
+            Travelpad.error("Failed to load pad owners bukkit seen time? "+pad.toString());
+
         }
+
         if (pad.usedSince != 0) {
             score = score / pad.usedSince;
         }
