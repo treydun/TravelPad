@@ -118,7 +118,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                     plugin.sendLine(sender, "Loc: " + Travelpad.formatLocation(pad.getLocation()));
                     plugin.sendLine(sender, "Public: " + pad.isPublic());
                     plugin.sendLine(sender, "Desc: " + pad.getDescription());
-                    plugin.sendLine(sender, "Prepaid: "+pad.prepaidsLeft());
+                    plugin.sendLine(sender, "Prepaid: " + pad.prepaidsLeft());
                     if (sender.hasPermission("travelpad.info.all")) {
                         plugin.sendLine(sender, "LastUsed: " + pad.getLastUsed());
                         plugin.sendLine(sender, "Weighted Score: " + Pad.weightedScore(pad));
@@ -189,14 +189,14 @@ public class TravelPadCommandExecutor implements TabExecutor {
                     TextComponent builder = new TextComponent("[Your Pads]");
                     builder.addExtra(NEWLINE);
                     builder.addExtra(fancyList(pads));
-                    plugin.message(sender,builder);
+                    plugin.message(sender, builder);
                     //player.sendMessage(Travelpad.PLUGIN_PREFIX_COLOR + "Your telepads are:");
                     //for (Pad p : ppads) {
                     //    TextComponent padName = new TextComponent(" * " + Format.firstLetterCaps(p.getName()));
                     //    padName.setColor(ChatColor.GREEN);
                     //    padName.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + p.getName()));
-                     //   padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
-                     //   player.spigot().sendMessage(padName);
+                    //   padName.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click Me!! To go to " + Format.firstLetterCaps(p.getName()))}));
+                    //   player.spigot().sendMessage(padName);
                     //}
                 } else {
                     plugin.errorMessage(player, plugin.Lang().command_deny_permission());
@@ -218,7 +218,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                             //for (Pad pad : pads) {
                             //    builder.addExtra(plugin.clickablePad(pad));
                             //    builder.addExtra(NEWLINE);
-                                //sender.sendMessage(Pad.serialize(pad));
+                            //sender.sendMessage(Pad.serialize(pad));
                             //}
                             plugin.message(sender, builder);
                         } else {
@@ -238,7 +238,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                             //for (Pad pad : pads) {
                             //    builder.addExtra(plugin.clickablePad(pad));
                             //    builder.addExtra(NEWLINE);
-                                //sender.sendMessage(Pad.serialize(pad));
+                            //sender.sendMessage(Pad.serialize(pad));
                             //}
                             plugin.message(sender, builder);
                         } else {
@@ -288,7 +288,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                 builder.addExtra(Bukkit.getPlayer(ownerID).getName());
                                 builder.addExtra("'s Pads]");
                                 builder.addExtra(fancyList(pads));
-                                plugin.message(sender,builder);
+                                plugin.message(sender, builder);
                                 //plugin.message(sender, args[1] + "'s " + ChatColor.GREEN + "telepads are:");
                                 //TextComponent component = new TextComponent();
                                 //for (Pad p : ppads) {
@@ -381,7 +381,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                 plugin.errorMessage(player, "You are already standing at that pad?");
                                 return true;
                             }
-                            if (destinationPad.prepaidsLeft()>0 || plugin.canAffordTeleport(player)) {
+                            if (destinationPad.prepaidsLeft() > 0 || plugin.canAffordTeleport(player)) {
                                 TravelPadTeleportEvent e = new TravelPadTeleportEvent(destinationPad, originPad, player);
                                 plugin.getServer().getPluginManager().callEvent(e);
                                 if (!e.isCancelled()) {
@@ -390,7 +390,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                         plugin.Meta().saveMeta(destinationPad.getName());
                                     }
                                     Location loc = e.getTo().getTeleportLocation();
-                                    if(destinationPad.chargePrepaid())
+                                    if (destinationPad.chargePrepaid())
                                         player.setMetadata("prepaid", new FixedMetadataValue(plugin, true));
                                     plugin.teleport(player, loc);
                                 }
@@ -436,13 +436,13 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                 stacks--;
                             }
                             player.getInventory().remove(new ItemStack(Material.ENDER_EYE, remainder));
-                            pad.setPrepaid(pad.prepaidsLeft()+prepaid);
+                            pad.setPrepaid(pad.prepaidsLeft() + prepaid);
                             plugin.Meta().saveMeta(pad.getName());
-                            plugin.message(sender, pad.getName()+" now  has "+pad.prepaidsLeft()+" teleports prepaid");
+                            plugin.message(sender, pad.getName() + " now  has " + pad.prepaidsLeft() + " teleports prepaid");
                         } else if (plugin.charge(player, prepaid * plugin.Config().teleportAmount)) {
-                            pad.setPrepaid(pad.prepaidsLeft()+prepaid);
+                            pad.setPrepaid(pad.prepaidsLeft() + prepaid);
                             plugin.Meta().saveMeta(pad.getName());
-                            plugin.message(sender, pad.getName()+" now  has "+pad.prepaidsLeft()+" teleports prepaid");
+                            plugin.message(sender, pad.getName() + " now  has " + pad.prepaidsLeft() + " teleports prepaid");
                         } else {
                             plugin.errorMessage(player, plugin.Lang().create_deny_money());
                         }
@@ -583,9 +583,9 @@ public class TravelPadCommandExecutor implements TabExecutor {
             cacheTime = System.currentTimeMillis();
         }
         plugin.message(sender, publicPadMainPage);
-        StringBuilder builder=new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         //builder.append('\n');
-        for(Pad pad:plugin.Manager().getPublicPads()){
+        for (Pad pad : plugin.Manager().getPublicPads()) {
             builder.append(pad.getName());
             builder.append('`');
             builder.append(pad.getDescription());
@@ -594,7 +594,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
         TabText tt = new TabText(builder.toString());
         tt.setPageHeight(30);
         tt.setTabs(new int[]{16});
-        if(sender instanceof Player){
+        if (sender instanceof Player) {
             plugin.sendLine(sender, tt.getPage(1, false));
         } else {
             plugin.sendLine(sender, tt.getPage(1, true));
@@ -617,11 +617,11 @@ public class TravelPadCommandExecutor implements TabExecutor {
         */
         BaseComponent[] padsList = new BaseComponent[pads.size()];
         int index = 0;
-        for(Iterator<Pad> paderator = pads.iterator(); paderator.hasNext();){
+        for (Iterator<Pad> paderator = pads.iterator(); paderator.hasNext(); ) {
             Pad pad = paderator.next();
             padsList[index] = getFancyLine(pad);
             index++;
-            if(index>10){
+            if (index > 10) {
                 //Kickout to prevent overflows
                 break;
             }
@@ -629,7 +629,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
         return new TextComponent(padsList);
     }
 
-    private BaseComponent getFancyLine(Pad pad){
+    private BaseComponent getFancyLine(Pad pad) {
         ComponentBuilder builder = new ComponentBuilder("");
         builder.append("(");
         builder.color(ChatColor.DARK_GRAY);
@@ -850,9 +850,12 @@ public class TravelPadCommandExecutor implements TabExecutor {
 
     public List<String> adminPads(String arg) {
         List<String> adminPads = new ArrayList<>();
-        for (Pad pad : plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID)) {
-            if (pad.getName().startsWith(arg)) {
-                adminPads.add(pad.getName());
+        List<Pad> allAdminPads = plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID);
+        if (allAdminPads != null && !allAdminPads.isEmpty()) {
+            for (Pad pad : plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID)) {
+                if (pad.getName().startsWith(arg)) {
+                    adminPads.add(pad.getName());
+                }
             }
         }
         return adminPads;
