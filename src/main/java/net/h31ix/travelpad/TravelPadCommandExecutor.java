@@ -825,42 +825,62 @@ public class TravelPadCommandExecutor implements TabExecutor {
         return completions;
     }
 
+    /**
+     * Returns a list of all pads a player owns (Minus any public ones which are already used in publicPads)
+     * @param sender the sender of the command, needs to always be a player to get the UUID else just returns empty
+     * @param arg starts with text to compare against the pad names
+     * @return list of pad names a player owns minus any public ones
+     */
     public List<String> playersPads(CommandSender sender, String arg) {
         List<String> playersPads = new ArrayList<>();
         if (sender instanceof Player) {
             Player player = (Player) sender;
-            for (Pad p : plugin.Manager().getPadsFrom(player.getUniqueId())) {
-                if (!p.isPublic() && p.getName().toLowerCase().startsWith(arg)) {
-                    playersPads.add(p.getName());
+            for (Pad pad : plugin.Manager().getPadsFrom(player.getUniqueId())) {
+                if (!pad.isPublic() && pad.getName().toLowerCase().startsWith(arg)) {
+                    playersPads.add(pad.getName());
                 }
             }
         }
         return playersPads;
     }
 
+    /**
+     * Returns a list of all public pad names that start with arg
+     * @param arg String to check padnames against
+     * @return list of matching string names or empty list
+     */
     public List<String> publicPads(String arg) {
-        List<String> publicPads = new ArrayList<>();
-        for (Pad pad : plugin.Manager().getPublicPads()) {
-            if (pad.getName().startsWith(arg)) {
-                publicPads.add(pad.getName());
-            }
-        }
-        return publicPads;
-    }
-
-    public List<String> adminPads(String arg) {
-        List<String> adminPads = new ArrayList<>();
-        List<Pad> allAdminPads = plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID);
-        if (allAdminPads != null && !allAdminPads.isEmpty()) {
-            for (Pad pad : plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID)) {
+        List<String> publicPadNames = new ArrayList<>();
+        List<Pad> publicPads = plugin.Manager().getPublicPads();
+        if (publicPads != null && !publicPads.isEmpty()) {
+            for (Pad pad : publicPads) {
                 if (pad.getName().startsWith(arg)) {
-                    adminPads.add(pad.getName());
+                    publicPadNames.add(pad.getName());
                 }
             }
         }
-        return adminPads;
+        return publicPadNames;
     }
 
+    /**
+     * Returns a list of all admin pad names that start with arg
+     * @param arg String to check padnames against
+     * @return list of matching string names or empty list
+     */
+    public List<String> adminPads(String arg) {
+        List<String> adminPadNames = new ArrayList<>();
+        List<Pad> adminPads = plugin.Manager().getPadsFrom(Travelpad.ADMIN_UUID);
+        if (adminPads != null && !adminPads.isEmpty()) {
+            for (Pad pad : adminPads) {
+                if (pad.getName().startsWith(arg)) {
+                    adminPadNames.add(pad.getName());
+                }
+            }
+        }
+        return adminPadNames;
+    }
+
+    //TODO: Might need to normalize these strings, need to test in game
     public List<String> getPlayersByName(String arg) {
         List<String> playersNames = new ArrayList<>();
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -873,13 +893,21 @@ public class TravelPadCommandExecutor implements TabExecutor {
         return playersNames;
     }
 
+    /**
+     * Returns a list of all pad names that start with arg
+     * @param arg String to check padnames against
+     * @return list of matching string names or empty list
+     */
     public List<String> getAllPads(String arg) {
-        List<String> allPads = new ArrayList<>();
-        for (Pad pad : plugin.Manager().getPads()) {
-            if (pad.getName().startsWith(arg)) {
-                allPads.add(pad.getName());
+        List<String> allPadNames = new ArrayList<>();
+        List<Pad> allPads = plugin.Manager().getPads();
+        if (allPads != null && !allPads.isEmpty()) {
+            for (Pad pad : allPads) {
+                if (pad.getName().startsWith(arg)) {
+                    allPadNames.add(pad.getName());
+                }
             }
         }
-        return allPads;
+        return allPadNames;
     }
 }

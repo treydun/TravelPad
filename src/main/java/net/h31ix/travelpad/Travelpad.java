@@ -2,12 +2,14 @@ package net.h31ix.travelpad;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import com.buildatnight.travelpad.ComponentTests;
 import net.h31ix.travelpad.api.Configuration;
 import net.h31ix.travelpad.api.Pad;
 import net.h31ix.travelpad.api.TravelPadManager;
@@ -36,6 +38,7 @@ public class Travelpad extends JavaPlugin {
     private LangManager l;
     private SyncMeta syncMeta;
     private int syncMetaTaskID;
+    private HashMap<UUID, String> idToName;
 
     private Economy economy;
 
@@ -69,6 +72,12 @@ public class Travelpad extends JavaPlugin {
         if (!new File("plugins/TravelPad/lang.yml").exists()) {
             saveResource("lang.yml", false);
         }
+
+        //Propogate fast nameMap (Should be unity still :S)
+        for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
+            idToName.put(offlinePlayer.getUniqueId(), offlinePlayer.getName());
+        }
+
         //TODO: Remove this for production, change to auto update method
         //Force lang update flag for development
         saveResource("lang.yml", true);
@@ -100,6 +109,7 @@ public class Travelpad extends JavaPlugin {
         getCommand("t").setTabCompleter(commandExecutor);
         syncMeta = new SyncMeta(this);
         syncMetaTaskID = getServer().getScheduler().scheduleSyncRepeatingTask(this, syncMeta, 299L, 500L);
+
     }
 
     public boolean namePad(Player player, String name) {
@@ -370,7 +380,7 @@ public class Travelpad extends JavaPlugin {
     }
 
     public void message(CommandSender sender, BaseComponent component) {
-        if(ComponentSerializer.toString(component).length()>32000){
+        if (ComponentSerializer.toString(component).length() > 32000) {
             error("MESSAGE OVERFLOW! This method MUST be updated now!");
             return;
         }
@@ -395,11 +405,14 @@ public class Travelpad extends JavaPlugin {
 
     public String getPlayerName(UUID playersUUID) {
         OfflinePlayer oPlayer = getServer().getOfflinePlayer(playersUUID);
-        if (oPlayer != null) {
+        if (oPlayer == null) {
+            String name = idToName.get(playersUUID);
+            if (name != null) {
+                return name;
+            }
+        } else {
             return oPlayer.getName();
         }
-        error("Failed to match " + playersUUID + " to a known player seen on the server? Serious failure");
-        //TODO: Fallback to unity next (allow it to MjAPI?)
         return null;
     }
 
