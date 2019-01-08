@@ -73,9 +73,18 @@ public class Travelpad extends JavaPlugin {
             saveResource("lang.yml", false);
         }
 
+        idToName=new HashMap<>(Bukkit.getOfflinePlayers().length);
         //Propogate fast nameMap (Should be unity still :S)
         for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
-            idToName.put(offlinePlayer.getUniqueId(), offlinePlayer.getName());
+            if(offlinePlayer!=null){
+                UUID uuid = offlinePlayer.getUniqueId();
+                String name = offlinePlayer.getName();
+                if(uuid==null || name==null){
+                    continue;
+                } else {
+                    idToName.put(uuid, name);
+                }
+            }
         }
 
         //TODO: Remove this for production, change to auto update method
