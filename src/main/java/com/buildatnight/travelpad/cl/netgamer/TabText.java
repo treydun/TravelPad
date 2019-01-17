@@ -93,7 +93,8 @@ public class TabText {
     public void setTabs(int... tabs) {
         int[] tabs2 = new int[tabs.length + 1];
         tabs2[0] = tabs[0];
-        for (int i = 1; i < tabs.length; ++i) tabs2[i] = tabs[i] - tabs[i - 1];
+        for (int i = 1; i < tabs.length; ++i)
+            tabs2[i] = tabs[i] - tabs[i - 1];
         tabs2[tabs.length] = 53 - tabs[tabs.length - 1];
         this.tabs = tabs2;
     }

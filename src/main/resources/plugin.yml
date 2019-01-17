@@ -7,6 +7,7 @@ description: Travelpad lets players create their own Physical Teleport pads (Sim
 author: Treydun
 authors: [H31IX]
 website: https://www.buildatnight.com/travelpad
+depend: [BukkitPaginator]
 
 main: net.h31ix.travelpad.Travelpad
 api-version: 1.13

@@ -9,6 +9,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import com.buildatnight.pagination.BukkitPaginator;
+import com.buildatnight.pagination.Pagination;
 import com.buildatnight.travelpad.ComponentTests;
 import net.h31ix.travelpad.api.Configuration;
 import net.h31ix.travelpad.api.Pad;
@@ -51,6 +53,8 @@ public class Travelpad extends JavaPlugin {
     public static final String DELIMINATOR = "/";
     public static final Pattern isInteger = Pattern.compile("-?\\d+");
 
+    private BukkitPaginator paginator;
+
     @Override
     public void onDisable() {
         getServer().getScheduler().cancelTask(syncMetaTaskID);
@@ -73,13 +77,19 @@ public class Travelpad extends JavaPlugin {
             saveResource("lang.yml", false);
         }
 
-        idToName=new HashMap<>(Bukkit.getOfflinePlayers().length);
+        paginator = (BukkitPaginator) getServer().getPluginManager().getPlugin("BukkitPaginator");
+        if (paginator == null) {
+            getLogger().severe("Failed to find BukkitPaginator, DISABLING");
+            getServer().getPluginManager().disablePlugin(this);
+        }
+
+        idToName = new HashMap<>(Bukkit.getOfflinePlayers().length);
         //Propogate fast nameMap (Should be unity still :S)
         for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
-            if(offlinePlayer!=null){
+            if (offlinePlayer != null) {
                 UUID uuid = offlinePlayer.getUniqueId();
                 String name = offlinePlayer.getName();
-                if(uuid==null || name==null){
+                if (uuid == null || name == null) {
                     continue;
                 } else {
                     idToName.put(uuid, name);
@@ -118,7 +128,7 @@ public class Travelpad extends JavaPlugin {
         getCommand("t").setTabCompleter(commandExecutor);
         syncMeta = new SyncMeta(this);
         syncMetaTaskID = getServer().getScheduler().scheduleSyncRepeatingTask(this, syncMeta, 299L, 500L);
-
+        ComponentTests.runTests();
     }
 
     public boolean namePad(Player player, String name) {
@@ -458,38 +468,56 @@ public class Travelpad extends JavaPlugin {
         return clickablePad(pad, true);
     }
 
+    /**
+     * THIS METHOD HAD TO BE REWRITTEN TO HAVE AN EXTRA COMPONENT JOIN THE TEXT/COLOR BECAUSE DOING IT WITH ONE COMPONENT
+     * RESULTED IN A DANGLING JSON 'GREEN' TAG WITH NO CONTENT (Appeared to be attached to the hover event somehow...)
+     * @param pad
+     * @param tooltip
+     * @return
+     */
     public static BaseComponent clickablePad(Pad pad, boolean tooltip) {
-        BaseComponent component = new TextComponent(pad.getName());
-        component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + pad.getName()));
+        TextComponent combined = new TextComponent("");
+        TextComponent component = new TextComponent(pad.getName());
+        component.setColor(ChatColor.GREEN);
+        combined.addExtra(component);
+        combined.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t tp " + pad.getName()));
         if (tooltip)
-            component.setHoverEvent(padTooltip(pad));
-        return component;
+            combined.setHoverEvent(padTooltip(pad));
+        return combined;
     }
 
     public static HoverEvent padTooltip(Pad pad) {
-        ComponentBuilder builder = new ComponentBuilder("Name: ");
-        builder.append(pad.getName());
-        builder.color(ChatColor.GREEN);
-        builder.append(NEWLINE);
-        builder.append("Owner: ");
-        builder.color(ChatColor.WHITE);
-        builder.append(pad.ownerName());
-        builder.color(ChatColor.GREEN);
-        builder.append(NEWLINE);
-        builder.append("Loc: ");
-        builder.color(ChatColor.WHITE);
-        builder.append(fancyLocation(pad.getLocation()));
-        builder.color(ChatColor.GREEN);
-        if (pad.isPublic()) {
-            builder.append("Public: ");
-            builder.color(ChatColor.WHITE);
-            builder.append("True");
-            builder.color(ChatColor.GREEN);
+        TextComponent name = new TextComponent("Name: ");
+        TextComponent padName = new TextComponent(pad.getName()+'\n');
+        padName.setColor(ChatColor.GREEN);
+        name.addExtra(padName);
+        ComponentBuilder builder = new ComponentBuilder(name);
+        TextComponent owner = new TextComponent("Owner: ");
+        TextComponent ownerName = new TextComponent(pad.ownerName()+'\n');
+        ownerName.setColor(ChatColor.GREEN);
+        owner.addExtra(ownerName);
+        builder.append(owner);
+        TextComponent location = new TextComponent("Location: ");
+        TextComponent locationName = new TextComponent(locationString(pad.getLocation())+'\n');
+        locationName.setColor(ChatColor.GREEN);
+        location.addExtra(locationName);
+        builder.append(location);
+        if(pad.isPublic()){
+            TextComponent isPublic = new TextComponent("Public"+'\n');
+            builder.append(isPublic);
         }
-        if (pad.prepaidsLeft() > 0) {
-            builder.append(" ~ Free ~");
+        if(pad.prepaidsLeft() > 0) {
+            TextComponent isPrepaid = new TextComponent(" ~ Prepaid ~");
+            builder.append(isPrepaid);
         }
         return new HoverEvent(HoverEvent.Action.SHOW_TEXT, builder.create());
+    }
+
+    public static String locationString(Location loc) {
+        if (loc != null) {
+            return loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + " " + loc.getWorld().getName();
+        }
+        return "";
     }
 
     public static String formatLocation(Location loc) {
@@ -518,6 +546,12 @@ public class Travelpad extends JavaPlugin {
                 .append("Yaw: ")
                 .append(String.valueOf(loc.getYaw())).create()));
         return component;
+    }
+
+    public void sendPagination(CommandSender sender, BaseComponent[] lines, String title) {
+        Pagination pagination = new Pagination(lines);
+        pagination.setTitle(title);
+        paginator.sendPagination(sender, pagination);
     }
 
     public static boolean isAdminPad(Pad pad) {
