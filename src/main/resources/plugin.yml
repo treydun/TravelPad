@@ -49,6 +49,8 @@ permissions:
       travelpad.delete: true
       travelpad.set: true
       travelpad.prepay: true
+      travelpad.list: true
+      travelpad.list.public: true
   travelpad.admin:
     description: Permission to manage travelpads serverwide
     default: false
@@ -56,6 +58,7 @@ permissions:
       travelpad.user: true
       travelpad.info.others: true
       travelpad.list.others: true
+      travelpad.list.admin: true
       travelpad.delete.others: true
   travelpad.reload:
     description: Permission to reload config files from disk.

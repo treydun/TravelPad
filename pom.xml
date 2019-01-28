@@ -32,6 +32,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.buildatnight.unity</groupId>
+            <artifactId>Unity</artifactId>
+            <version>0.2</version>
+        </dependency>
+
+        <dependency>
             <groupId>net.milkbowl.vault</groupId>
             <artifactId>VaultAPI</artifactId>
             <version>1.6</version>

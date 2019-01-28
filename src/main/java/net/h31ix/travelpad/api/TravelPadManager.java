@@ -26,6 +26,7 @@ public class TravelPadManager {
 
     private List<UnnamedPad> unvList = new ArrayList<>();
 
+    //Base Public list. Sorted by weight.
     private List<Pad> publicPads = new ArrayList<>();
 
     public TravelPadManager(Travelpad plugin) {
@@ -33,11 +34,22 @@ public class TravelPadManager {
         update();
     }
 
+    public void reload(){
+        update();
+    }
+
+    public void refreshPublicPads(){
+        publicPads.clear();
+        for(Pad pad:getPads())
+            if(pad.isPublic())
+                publicPads.add(pad);
+    }
     /**
      * Update the list of pads from the Config() datastore
      * Does NOT trigger a disk read any longer
      */
     public void update() {
+        publicPads.clear();
         //Import padlist from config
         List<String> serializedPads = plugin.Config().getPads();
         if (serializedPads != null && !serializedPads.isEmpty()) {
@@ -76,7 +88,6 @@ public class TravelPadManager {
             }
         }
         sortPublicPads();
-
     }
 
     public void cachePad(Pad pad) {
@@ -322,6 +333,7 @@ public class TravelPadManager {
             flushPad(pad);
             plugin.Config().removeUnnamedPad(pad.serialize());
             Pad newPad = new Pad(pad.getLocation(), pad.OwnerUUID(), e.getName());
+            newPad.setOwnerName(plugin.getPlayerName(pad.OwnerUUID()));
             addPad(newPad);//Triggers async save...
         }
     }
@@ -443,7 +455,7 @@ public class TravelPadManager {
      * @return Set of pads that the player owns, null if they have none.
      */
     public List<Pad> getPadsFrom(UUID owner) {
-        return padsByUUID.get(owner);
+        return padsByUUID.getOrDefault(owner, new ArrayList<>());
     }
 
     /**
@@ -475,17 +487,18 @@ public class TravelPadManager {
         return allPads;
     }
 
-    public void sortPublicPads(){
+    public void sortPublicPads() {
+        //TODO: This
         Collections.sort(publicPads);
         //publicPads.sort(new SortByLastUsed());
         //publicPads.sort(new SortByMostUsed());
-        List<String> padNames = new ArrayList<>(publicPads.size());
-        for(Pad pad:publicPads){
-            Travelpad.log(pad.getName());
-            padNames.add(pad.getName());
-            pad.resetStats();
-        }
-        padNames.sort(String.CASE_INSENSITIVE_ORDER);
+        //List<String> padNames = new ArrayList<>(publicPads.size());
+        //for(Pad pad:publicPads){
+        //    Travelpad.log(pad.getName());
+        //    padNames.add(pad.getName());
+        //    pad.resetStats();
+        //}
+        //padNames.sort(String.CASE_INSENSITIVE_ORDER);
     }
 
     public List<Pad> getPublicPads() {
@@ -550,7 +563,7 @@ public class TravelPadManager {
 
     public boolean isOwner(CommandSender sender, Pad pad) {
         if (sender instanceof Player) {
-            if (pad.ownerUUID() == ((Player) sender).getUniqueId()) {
+            if (((Player) sender).getUniqueId().equals(pad.ownerUUID())) {
                 return true;
             }
         }

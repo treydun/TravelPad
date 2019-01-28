@@ -18,13 +18,14 @@ public class Pad implements Comparable {
     private String name;
     private UUID ownerUUID;
 
-    private transient String ownerName = "";
-    private transient int usedSince = 0;
-
     private boolean publicPad = false;
     private String description = "";
     private long lastUsed = 0L;
     private int prepaidTeleports = 0;
+
+    private transient String ownerName = "";
+    private transient int usedSince = 0;
+    private transient long weight = -1;
 
 
     public Pad(Location location, UUID ownerUUID, String name) {
@@ -189,6 +190,39 @@ public class Pad implements Comparable {
         }
     }
 
+    public long getWeight() {
+        return getWeight(false);
+    }
+
+    public long getWeight(boolean flushCache) {
+        if (flushCache || weight == -1) {
+            Long score = 0L;
+            if (lastUsed != 0) {
+                score = System.currentTimeMillis() - lastUsed;
+                Travelpad.log("lastUsed = "+lastUsed+" so score now "+score);
+            }
+
+            Long lastSeen = Travelpad.getLastSeen(ownerUUID);
+            if (lastSeen != -1) {
+                score = score + lastSeen;
+            } else {
+                score = score + (1000 * 60 * 60 * 24 * 7);
+                Travelpad.error("Failed to load pad owners bukkit seen time? " + toString());
+            }
+            Travelpad.log("lastSeen = "+lastSeen+" score now "+score);
+            if (usedSince != 0) {
+                score = score / usedSince;
+                Travelpad.log("usedSince="+usedSince+" so score now "+score);
+            }
+            //Lower is better
+            Travelpad.log(getName() + " score:" + score);
+            weight=score;
+            return score;
+        } else {
+            return weight;
+        }
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(name);
@@ -312,37 +346,18 @@ public class Pad implements Comparable {
     public int compareTo(Object o) {
         if (o instanceof Pad) {
             Pad otherPad = (Pad) o;
-            //if (this.lastUsed > otherPad.lastUsed) {
-            if (weightedScore(this) > weightedScore(otherPad)) {
-                return 1;
-            } else {
-                return -1;
-            }
+            if (this.getWeight() >= otherPad.getWeight()) return 1;
+            else return -1;
         }
         return 0;
     }
+}
 
-    public static int weightedScore(Pad pad) {
-        int score = 0;
-        if (pad.lastUsed != 0) {
-            score = new Long(System.currentTimeMillis() - pad.lastUsed).intValue();
-        }
+class SortByName implements Comparator<Pad> {
 
-        Long lastSeen = Travelpad.getLastSeen(pad.ownerUUID);
-        if (lastSeen != -1) {
-            score = score + lastSeen.intValue();
-        } else {
-            score = score + (1000*60*60*24*7);
-            Travelpad.error("Failed to load pad owners bukkit seen time? "+pad.toString());
-
-        }
-
-        if (pad.usedSince != 0) {
-            score = score / pad.usedSince;
-        }
-        //Lower is better
-        Travelpad.log(pad.getName() + " score:" + score);
-        return score;
+    @Override
+    public int compare(Pad pad1, Pad pad2) {
+        return pad1.getName().compareToIgnoreCase(pad2.getName());
     }
 }
 
