@@ -209,13 +209,13 @@ public class Pad implements Comparable {
                 score = score + (1000 * 60 * 60 * 24 * 7);
                 Travelpad.error("Failed to load pad owners bukkit seen time? " + toString());
             }
-            Travelpad.log("lastSeen = "+lastSeen+" score now "+score);
+            //Travelpad.log("lastSeen = "+lastSeen+" score now "+score);
             if (usedSince != 0) {
                 score = score / usedSince;
                 Travelpad.log("usedSince="+usedSince+" so score now "+score);
             }
             //Lower is better
-            Travelpad.log(getName() + " score:" + score);
+            //Travelpad.log(getName() + " score:" + score);
             weight=score;
             return score;
         } else {
@@ -351,40 +351,14 @@ public class Pad implements Comparable {
         }
         return 0;
     }
+
+    final public static Comparator<Pad> byLastUsed = Comparator.comparing(Pad::getLastUsed);
+    final public static Comparator<Pad> byMostUsed = Comparator.comparing(Pad::getUsedSince);
+    final public static Comparator<Pad> byName = Comparator.comparing(Pad::getName);
 }
 
-class SortByName implements Comparator<Pad> {
 
-    @Override
-    public int compare(Pad pad1, Pad pad2) {
-        return pad1.getName().compareToIgnoreCase(pad2.getName());
-    }
-}
 
-class SortByLastUsed implements Comparator<Pad> {
 
-    @Override
-    public int compare(Pad pad1, Pad pad2) {
-        if (pad1.getLastUsed() > pad2.getLastUsed()) {
-            return 1;
-        } else if (pad1.getLastUsed() < pad2.getLastUsed()) {
-            return -1;
-        } else {
-            return 0;
-        }
-    }
-}
 
-class SortByMostUsed implements Comparator<Pad> {
 
-    @Override
-    public int compare(Pad pad1, Pad pad2) {
-        if (pad1.getUsedSince() > pad2.getUsedSince()) {
-            return 1;
-        } else if (pad1.getUsedSince() < pad2.getUsedSince()) {
-            return -1;
-        } else {
-            return 0;
-        }
-    }
-}

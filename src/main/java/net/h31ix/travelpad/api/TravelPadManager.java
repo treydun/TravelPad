@@ -4,6 +4,7 @@ import net.h31ix.travelpad.Travelpad;
 import net.h31ix.travelpad.event.TravelPadExpireEvent;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import net.h31ix.travelpad.event.TravelPadCreateEvent;
 import net.h31ix.travelpad.event.TravelPadDeleteEvent;
@@ -34,22 +35,17 @@ public class TravelPadManager {
         update();
     }
 
-    public void reload(){
+    public void reload() {
         update();
     }
 
-    public void refreshPublicPads(){
-        publicPads.clear();
-        for(Pad pad:getPads())
-            if(pad.isPublic())
-                publicPads.add(pad);
-    }
     /**
      * Update the list of pads from the Config() datastore
      * Does NOT trigger a disk read any longer
      */
     public void update() {
         publicPads.clear();
+        Travelpad.log("Importing pad data from data store");
         //Import padlist from config
         List<String> serializedPads = plugin.Config().getPads();
         if (serializedPads != null && !serializedPads.isEmpty()) {
@@ -198,12 +194,12 @@ public class TravelPadManager {
     }
 
     public void setPublic(Pad pad, boolean setPublic) {
-        pad.setPublic(setPublic);
         if (setPublic) {
             publicPads.add(pad);
         } else {
             publicPads.remove(pad);
         }
+        pad.setPublic(setPublic);
         plugin.Meta().saveMeta(pad.getName());
     }
 
@@ -271,10 +267,10 @@ public class TravelPadManager {
     }
 
     public void setOwnerName(Pad pad) {
-        if (!Travelpad.isAdminPad(pad)) {
-            pad.setOwnerName(plugin.getPlayerName(pad.ownerUUID()));
-        } else {
+        if (Travelpad.isAdminPad(pad)) {
             pad.setOwnerName("Admin");
+        } else {
+            pad.setOwnerName(plugin.getPlayerName(pad.ownerUUID()));
         }
     }
 
@@ -452,7 +448,7 @@ public class TravelPadManager {
      * Get all the pads that a player owns
      *
      * @param owner UUID to search for
-     * @return Set of pads that the player owns, null if they have none.
+     * @return Set of pads that the player owns, empty list if they have none.
      */
     public List<Pad> getPadsFrom(UUID owner) {
         return padsByUUID.getOrDefault(owner, new ArrayList<>());
@@ -462,16 +458,13 @@ public class TravelPadManager {
      * Get all the unnamed pads that a player owns
      *
      * @param owner UUID to search for
-     * @return Set of unnamed pads that the player owns, null if they have none.
+     * @return Set of unnamed pads that the player owns, empty list if they have none.
      */
-    public List<UnnamedPad> getUnnamedPadsFrom(UUID owner) {
-        List<UnnamedPad> list = new ArrayList<>();
-        for (UnnamedPad pad : unvList) {
-            if (pad.OwnerUUID() == owner) {
-                list.add(pad);
-            }
-        }
-        return list;
+    public final List<UnnamedPad> getUnnamedPadsFrom(UUID owner) {
+        return unvList
+                .stream()
+                .filter(x -> x.OwnerUUID().equals(owner))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -479,30 +472,22 @@ public class TravelPadManager {
      *
      * @return Set of pads that exists
      */
-    public List<Pad> getPads() {
-        List<Pad> allPads = new ArrayList<>();
-        for (String key : padsByName.keySet()) {
-            allPads.add(padsByName.get(key));
-        }
-        return allPads;
+    public final List<Pad> getPads() {
+        return new ArrayList<>(padsByName.values());
     }
 
     public void sortPublicPads() {
         //TODO: This
         Collections.sort(publicPads);
-        //publicPads.sort(new SortByLastUsed());
-        //publicPads.sort(new SortByMostUsed());
-        //List<String> padNames = new ArrayList<>(publicPads.size());
-        //for(Pad pad:publicPads){
-        //    Travelpad.log(pad.getName());
-        //    padNames.add(pad.getName());
-        //    pad.resetStats();
-        //}
-        //padNames.sort(String.CASE_INSENSITIVE_ORDER);
     }
 
+    /**
+     * Gets the cache of public pads
+     *
+     * @return a NEW List of public pads
+     */
     public List<Pad> getPublicPads() {
-        return publicPads;
+        return new ArrayList<>(publicPads);
     }
 
     /**
@@ -511,13 +496,10 @@ public class TravelPadManager {
      * @return list of public player pads
      */
     public List<Pad> getPublicPlayerPads() {
-        List<Pad> publicPlayerPads = new ArrayList<>();
-        for (Pad pad : getPublicPads()) {
-            if (!Travelpad.isAdminPad(pad)) {
-                publicPlayerPads.add(pad);
-            }
-        }
-        return publicPlayerPads;
+        return getPublicPads()
+                .stream()
+                .filter(x -> !Travelpad.isAdminPad(x))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -526,13 +508,10 @@ public class TravelPadManager {
      * @return list of public admin pads
      */
     public List<Pad> getPublicAdminPads() {
-        List<Pad> publicAdminPads = new ArrayList<>();
-        for (Pad pad : getPublicPads()) {
-            if (Travelpad.isAdminPad(pad)) {
-                publicAdminPads.add(pad);
-            }
-        }
-        return publicAdminPads;
+        return getPublicPads()
+                .stream()
+                .filter(Travelpad::isAdminPad)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -540,22 +519,22 @@ public class TravelPadManager {
      *
      * @return Set of pads that are awaiting naming
      */
-    public List<UnnamedPad> getUnnamedPads() {
-        return unvList;
+    public final List<UnnamedPad> getUnnamedPads() {
+        return new ArrayList<>(unvList);
     }
 
     public boolean isSafe(Location loc, Player player) {
         World world = loc.getWorld();
-        Block pad = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 2, loc.getBlockZ());
+        Block padBlock = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 2, loc.getBlockZ());
         Block feet = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
         Block eyes = world.getBlockAt(loc);
         if (!(feet.getType() == Material.AIR || eyes.getType() == Material.AIR)) {
             plugin.errorMessage(player, "Pad Blocked! Feet:" + feet.getType().name() + " Eyes:" + eyes.getType().name());
             return false;//not safe, suffocated
-        } else if (pad.getType() != Material.OBSIDIAN) {
-            plugin.errorMessage(player, "Not a valid travelpad? The block is " + pad.getType().name() + " instead of " + plugin.Config().center.name());
+        } else if (padBlock.getType() != Material.OBSIDIAN) {
+            plugin.errorMessage(player, "Not a valid travelpad? The block is " + padBlock.getType().name() + " instead of " + plugin.Config().center.name());
             return false;
-        } else if (pad.getRelative(BlockFace.DOWN).getType() == Material.LAVA) {
+        } else if (padBlock.getRelative(BlockFace.DOWN).getType() == Material.LAVA) {
             plugin.message(player, "The block under this pad is lava, this can be hazardous with laggy connections");
         }
         return true; //assume passed

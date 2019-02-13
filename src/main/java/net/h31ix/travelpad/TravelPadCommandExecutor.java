@@ -6,18 +6,17 @@ import net.h31ix.travelpad.event.TravelPadTeleportEvent;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.*;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Statistic;
+import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static net.h31ix.travelpad.Travelpad.*;
 
@@ -246,7 +245,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                 Player player = (Player) sender;
                 if (player.hasPermission("travelpad.list")) {
                     List<Pad> pads = plugin.Manager().getPadsFrom(player.getUniqueId());
-                    if (pads!=null && pads.size() > 0) {
+                    if (pads != null && pads.size() > 0) {
                         BaseComponent[] padList = new BaseComponent[pads.size() + 1];
                         padList[0] = new TextComponent("[Your pads]");
                         int offset = 1;
@@ -265,17 +264,48 @@ public class TravelPadCommandExecutor implements TabExecutor {
                 plugin.errorMessage(sender, plugin.Lang().command_deny_console());
             }
             return true;
-        } else if (args.length == 2) {
+        } else if (args.length >= 2) {
             switch (args[1].toLowerCase()) {
                 case "public":
                 case "p":
                     if (sender.hasPermission("travelpad.list.public")) {
-                        List<Pad> pads = plugin.Manager().getPublicPads();
-                        if (pads != null && !pads.isEmpty()) {
-                            BaseComponent[] padList = new BaseComponent[pads.size() + 1];
+                        List<Pad> publicPads = null;
+                        if (args.length == 2) {
+                            publicPads = plugin.Manager().getPublicPads();
+                        } else if (args.length >= 3) {
+                            if ("sortby".equalsIgnoreCase(args[2]))
+                                switch (args[3].toLowerCase()) {
+                                    case "name":
+                                        publicPads = plugin.Manager().getPublicPads()
+                                                .stream()
+                                                .sorted(Pad.byName)
+                                                .collect(Collectors.toList());
+                                        break;
+                                    case "namereversed":
+                                        publicPads = plugin.Manager().getPublicPads()
+                                                .stream()
+                                                .sorted(Pad.byName.reversed())
+                                                .collect(Collectors.toList());
+                                        break;
+                                    case "lastused":
+                                        publicPads = plugin.Manager().getPublicPads()
+                                                .stream()
+                                                .sorted(Pad.byLastUsed)
+                                                .collect(Collectors.toList());
+                                        break;
+                                    case "mostused":
+                                        publicPads = plugin.Manager().getPublicPads()
+                                                .stream()
+                                                .sorted(Pad.byMostUsed)
+                                                .collect(Collectors.toList());
+                                        break;
+                                }
+                        }
+                        if (publicPads != null && !publicPads.isEmpty()) {
+                            BaseComponent[] padList = new BaseComponent[publicPads.size() + 1];
                             padList[0] = new TextComponent("[Public Pads]");
                             int offset = 1;
-                            for (Pad pad : pads) {
+                            for (Pad pad : publicPads) {
                                 padList[offset] = getFancyLine(pad);
                                 offset++;
                             }
@@ -341,7 +371,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                     padList[offset] = getFancyLine(pad);
                                     offset++;
                                 }
-                                plugin.sendPagination(sender, padList, args[1]+"'s pads");
+                                plugin.sendPagination(sender, padList, args[1] + "'s pads");
                             } else {
                                 plugin.errorMessage(sender, plugin.Lang().list_no_pads() + args[1]);
                             }
@@ -400,56 +430,120 @@ public class TravelPadCommandExecutor implements TabExecutor {
             Player player = (Player) sender;
             if (args.length == 2) {
                 if (player.hasPermission("travelpad.teleport")) {
-                    boolean allow = false;
-                    boolean chargeAnywhereItem = false;
-                    Pad originPad = null;
-                    if (player.hasPermission("travelpad.teleport.anywhere")) {
-                        allow = true;
-                    } else if (player.getInventory().contains(plugin.Config().anywhereItem)) {
-                        allow = true;
-                        chargeAnywhereItem = true;
-
-                    } else {
-                        originPad = plugin.Manager().getPadNear(player.getLocation()); //EXPENSIVE OPERATION
-                        if (originPad != null) {
-                            allow = true;
-                        }
+                    Pad destinationPad = plugin.Manager().getPad(args[1]);
+                    if (null == destinationPad) {
+                        plugin.errorMessage(player, plugin.Lang().teleport_deny_notfound());
+                        return true;
                     }
-                    if (allow) {
-                        Pad destinationPad = plugin.Manager().getPad(args[1]);
-                        if (destinationPad != null) {
-                            if (destinationPad.equals(originPad)) {
-                                plugin.errorMessage(player, "You are already standing at that pad?");
+                    Pad originPad = null;
+                    if (!player.hasPermission("travelpad.teleport.anywhere")) {
+                        if (!player.getInventory().contains(plugin.Config().anywhereItem)) {
+                            originPad = plugin.Manager().getPadNear(player.getLocation()); //EXPENSIVE OPERATION
+                            if (null == originPad) {
+                                plugin.errorMessage(player, plugin.Lang().teleport_deny_loc());
                                 return true;
                             }
-                            if (chargeAnywhereItem) {
-                                Statistics.tickStat("MagmaCreamPaid");
-                                ItemStack anywhereItemstack = new ItemStack(plugin.Config().anywhereItem, 1);
-                                player.getInventory().removeItem(anywhereItemstack);
-                                player.sendMessage("Charged 1x Magma Cream to teleport from 'anywhere'");
-                            }
-                            if (destinationPad.prepaidsLeft() > 0 || plugin.canAffordTeleport(player)) {
-                                TravelPadTeleportEvent e = new TravelPadTeleportEvent(destinationPad, originPad, player);
-                                plugin.getServer().getPluginManager().callEvent(e);
-                                if (!e.isCancelled()) {
-                                    if (destinationPad.isPublic() && !plugin.Manager().isOwner(sender, destinationPad)) {
-                                        destinationPad.setLastUsed();
-                                        plugin.Meta().saveMeta(destinationPad.getName());
-                                    }
-                                    Location loc = e.getTo().getTeleportLocation();
-                                    if (destinationPad.chargePrepaid())
-                                        Statistics.tickStat("Prepaid"+destinationPad.getName());
-                                        player.setMetadata("prepaid", new FixedMetadataValue(plugin, true));
-                                    plugin.teleport(player, loc);
-                                }
-                            } else {
-                                plugin.errorMessage(player, plugin.Lang().travel_deny_money());
-                            }
                         } else {
-                            plugin.errorMessage(player, plugin.Lang().teleport_deny_notfound());
+                            Statistics.tickStat("MagmaCreamPaid");
+                            ItemStack anywhereItemstack = new ItemStack(plugin.Config().anywhereItem, 1);
+                            player.getInventory().removeItem(anywhereItemstack);
+                            player.sendMessage("Charged 1x Magma Cream to teleport from 'anywhere'");
+                        }
+                    }
+                    if (destinationPad.equals(originPad)) {
+                        plugin.errorMessage(player, "You are already standing at that pad?");
+                        return true;
+                    }
+
+                    if (destinationPad.prepaidsLeft() > 0 || plugin.canAffordTeleport(player)) {
+                        TravelPadTeleportEvent e = new TravelPadTeleportEvent(destinationPad, originPad, player);
+                        plugin.getServer().getPluginManager().callEvent(e);
+                        if (!e.isCancelled()) {
+                            if (!player.hasPermission("travelpad.teleport.free")) {
+                                if (!destinationPad.chargePrepaid()) {
+                                    if (plugin.Config().requireItem || plugin.Config().takeItem) {
+                                        ItemStack itemToTake = new ItemStack(plugin.Config().itemType, 1);
+                                        //If item is required, legacy setting compatibility.
+                                        if (plugin.Config().requireItem && player.getInventory().contains(plugin.Config().itemType, 1)) {
+                                            if (plugin.Config().takeItem) {
+                                                player.getInventory().removeItem(itemToTake);
+                                                plugin.message(player, plugin.Lang().travel_approve_item().replace("%item%", ChatColor.GREEN + itemToTake.getType().name().replaceAll("_", " ") + ChatColor.GRAY));
+                                                //player.sendMessage(ChatColor.GOLD + itemToTake.getType().name().toLowerCase().replaceAll("_", " ") + " " + l.travel_approve_item());
+                                            } else {
+                                                plugin.message(player, "You used %item% to teleport");
+                                            }
+                                        } else if (plugin.Config().requireItem) {
+                                            plugin.errorMessage(player, plugin.Lang().travel_deny_item() + " " + itemToTake.getType().name().toLowerCase().replaceAll("_", " "));
+                                            return true;
+                                        }
+
+                                        //If item is not required but can be taken due to setting (Our new hybrid mode)
+                                        if (!plugin.Config().requireItem && (plugin.Config().chargeTeleport || plugin.Config().takeItem)) {
+                                            if (player.getInventory().contains(plugin.Config().itemType, 1)) {
+                                                Statistics.tickStat("EnderEyeCharge");
+                                                player.getInventory().removeItem(itemToTake);
+                                                //TODO: fix this ugly message a bit more
+                                                plugin.message(player, plugin.Lang().travel_approve_item().replace("%item%", ChatColor.GREEN + "(1) " + itemToTake.getType().name().toLowerCase().replaceAll("_", " ") + ChatColor.GRAY));
+                                            } else {
+                                                if (plugin.Config().chargeTeleport) {
+                                                    if (!plugin.charge(player, plugin.Config().teleportAmount)) {
+                                                        plugin.errorMessage(player, plugin.Lang().travel_deny_money());
+                                                        return true;
+                                                    } else {
+                                                        Statistics.tickStat("CashPayment");
+                                                        player.sendMessage(ChatColor.GOLD + plugin.Lang().charge_message() + " " + plugin.Config().teleportAmount);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    player.sendMessage("TP'd for free!");
+                                    Statistics.tickStat("Prepaid" + destinationPad.getName());
+                                }
+                            } // Had free teleport permission
+
+                            //Allow event to change location...
+                            final Location destination = e.getTo().getTeleportLocation();
+                            if (!plugin.Manager().isSafe(destination, player)) {
+                                plugin.errorMessage(player, plugin.Lang().travel_unsafe());
+                                return true;
+                            }
+
+                            if (destinationPad.isPublic() && !plugin.Manager().isOwner(sender, destinationPad)) {
+                                destinationPad.setLastUsed();
+                                plugin.Meta().saveMeta(destinationPad.getName());
+                            }
+
+                            final World world = player.getWorld();
+                            final Location playerLocation = player.getLocation();
+                            world.playSound(playerLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 1, 0);
+                            world.playEffect(playerLocation, Effect.ENDER_SIGNAL, Effect.ENDER_SIGNAL.getData());
+                            plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
+                                @Override
+                                public void run() {
+                                    destination.getChunk().load();
+                                }
+                            }, 1);
+
+                            //Delay teleportation to allow the server time to load the chunk.
+                            plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (player.isOnline()) {
+                                        player.teleport(destination, PlayerTeleportEvent.TeleportCause.PLUGIN);
+                                        player.sendMessage(ChatColor.GREEN + plugin.Lang().travel_message());
+                                        for (int i = 0; i != 32; i++) {
+                                            player.getWorld().playEffect(destination.add(plugin.getRandom(), plugin.getRandom(), plugin.getRandom()), Effect.SMOKE, 3);
+                                        }
+                                    }
+                                }
+                            }, 3);
+                        } else {
+                            plugin.errorMessage(player, "A plugin is blocking this Travelpad from being accessed");
                         }
                     } else {
-                        plugin.errorMessage(player, plugin.Lang().teleport_deny_loc());
+                        plugin.errorMessage(player, plugin.Lang().travel_deny_money());
                     }
                 } else {
                     plugin.errorMessage(player, plugin.Lang().command_deny_permission());
@@ -643,7 +737,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
     }
 
     /* Sorted FancyLists cache. Will save a lot of resorting */
-    //TODO: Finish the rest of the sorting options
+//TODO: Finish the rest of the sorting options
     private long lastCached = 0;
     private BaseComponent[] sortByNameCache;
     private BaseComponent[] sortByNameReversedCache;
@@ -780,17 +874,17 @@ public class TravelPadCommandExecutor implements TabExecutor {
                             return Arrays.asList("Pad Not Found");
                         }
                         if ("public".startsWith(args[2])) {
-                            if(args.length==3)
-                            if (!pad.isPublic())
-                                completions.add("public");
+                            if (args.length == 3)
+                                if (!pad.isPublic())
+                                    completions.add("public");
                         }
                         if ("private".startsWith(args[2])) {
-                            if(args.length==3)
-                            if (pad.isPublic())
-                                completions.add("private");
+                            if (args.length == 3)
+                                if (pad.isPublic())
+                                    completions.add("private");
                         }
                         if ("description".startsWith(args[2])) {
-                            if(args.length==3)
+                            if (args.length == 3)
                                 completions.add("description");
                         }
                         if ("direction".startsWith(args[2])) {
@@ -813,8 +907,8 @@ public class TravelPadCommandExecutor implements TabExecutor {
                         }
                         if ("admin".startsWith(args[2])) {
                             if (sender.hasPermission("travelpad.admin")) {
-                                if(args.length==3)
-                                completions.add("admin");
+                                if (args.length == 3)
+                                    completions.add("admin");
                             }
                         }
                     } else {
@@ -910,10 +1004,10 @@ public class TravelPadCommandExecutor implements TabExecutor {
             senderUUID = ((Player) sender).getUniqueId();
         }
         List<Pad> pads = plugin.Manager().getPadsFrom(senderUUID);
-        if(pads!=null && pads.size()>0){
-            if(includePublic){
-                for (Pad pad:pads){
-                    if(pad.getName().toLowerCase().startsWith(arg.toLowerCase())){
+        if (pads != null && pads.size() > 0) {
+            if (includePublic) {
+                for (Pad pad : pads) {
+                    if (pad.getName().toLowerCase().startsWith(arg.toLowerCase())) {
                         playersPads.add(pad.getName());
                     }
                 }
