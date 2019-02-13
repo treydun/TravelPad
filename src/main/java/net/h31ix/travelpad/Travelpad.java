@@ -61,6 +61,7 @@ public class Travelpad extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        Statistics.getStats();
         getServer().getScheduler().cancelTask(syncMetaTaskID);
         syncMeta.forceSave();
     }

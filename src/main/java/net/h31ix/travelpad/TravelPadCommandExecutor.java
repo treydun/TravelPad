@@ -503,7 +503,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                                 }
                             } // Had free teleport permission
 
-                            //Allow event to change location...
+                            //Pull location to teleport from pads 'location + 1.25'
                             final Location destination = e.getTo().getTeleportLocation();
                             if (!plugin.Manager().isSafe(destination, player)) {
                                 plugin.errorMessage(player, plugin.Lang().travel_unsafe());

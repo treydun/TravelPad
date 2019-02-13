@@ -53,7 +53,7 @@ public class Pad implements Comparable {
      * @return location  Safe teleport location
      */
     public Location getTeleportLocation() {
-        return new Location(location.getWorld(), location.getX(), location.getY() + 2, location.getZ(), location.getYaw(), 0);
+        return new Location(location.getWorld(), location.getX(), location.getY() + 1.25, location.getZ(), location.getYaw(), 0);
     }
 
     public void setOwnerUUID(UUID ownerUUID) {

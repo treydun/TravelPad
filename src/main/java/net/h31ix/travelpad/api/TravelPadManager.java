@@ -1,5 +1,6 @@
 package net.h31ix.travelpad.api;
 
+import com.buildatnight.utils.bukkit.BlockUtils;
 import net.h31ix.travelpad.Travelpad;
 import net.h31ix.travelpad.event.TravelPadExpireEvent;
 
@@ -528,7 +529,7 @@ public class TravelPadManager {
         Block padBlock = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 2, loc.getBlockZ());
         Block feet = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
         Block eyes = world.getBlockAt(loc);
-        if (!(feet.getType() == Material.AIR || eyes.getType() == Material.AIR)) {
+        if(!BlockUtils.TRANSPARENT.contains(feet.getType()) || !BlockUtils.TRANSPARENT.contains(eyes.getType())) {
             plugin.errorMessage(player, "Pad Blocked! Feet:" + feet.getType().name() + " Eyes:" + eyes.getType().name());
             return false;//not safe, suffocated
         } else if (padBlock.getType() != Material.OBSIDIAN) {
