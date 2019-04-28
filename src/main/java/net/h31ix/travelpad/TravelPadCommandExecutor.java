@@ -255,7 +255,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
                         }
                         plugin.sendPagination(sender, padList, "Your Pad List");
                     } else {
-                        plugin.message(player, plugin.Lang().list_no_pads());
+                        plugin.message(player, plugin.Lang().list_no_pads()+ player.getName());
                     }
                 } else {
                     plugin.errorMessage(player, plugin.Lang().command_deny_permission());
@@ -505,7 +505,7 @@ public class TravelPadCommandExecutor implements TabExecutor {
 
                             //Pull location to teleport from pads 'location + 1.25'
                             final Location destination = e.getTo().getTeleportLocation();
-                            if (!plugin.Manager().isSafe(destination, player)) {
+                            if (!plugin.Manager().isSafe(e.getTo().getLocation(), player)) {
                                 plugin.errorMessage(player, plugin.Lang().travel_unsafe());
                                 return true;
                             }

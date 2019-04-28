@@ -526,9 +526,9 @@ public class TravelPadManager {
 
     public boolean isSafe(Location loc, Player player) {
         World world = loc.getWorld();
-        Block padBlock = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 2, loc.getBlockZ());
-        Block feet = world.getBlockAt(loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
-        Block eyes = world.getBlockAt(loc);
+        Block padBlock = world.getBlockAt(loc);
+        Block feet = world.getBlockAt(loc.getBlockX(), loc.getBlockY() + 1, loc.getBlockZ());
+        Block eyes = world.getBlockAt(loc.getBlockX(), loc.getBlockY() + 2, loc.getBlockZ());
         if(!BlockUtils.TRANSPARENT.contains(feet.getType()) || !BlockUtils.TRANSPARENT.contains(eyes.getType())) {
             plugin.errorMessage(player, "Pad Blocked! Feet:" + feet.getType().name() + " Eyes:" + eyes.getType().name());
             return false;//not safe, suffocated
